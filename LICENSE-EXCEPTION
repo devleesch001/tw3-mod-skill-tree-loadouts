@@ -1,10 +1,14 @@
-Skill Tree Loadouts - additional permission to the GNU General Public License
+Skill Tree Loadouts - additional permissions to the GNU General Public License
+
+Copyright (C) 2026 devleesch001
 
 Skill Tree Loadouts is free software: you can redistribute it and/or modify it under the
 terms of the GNU General Public License version 3 (see LICENSE), with the following
-additional permission.
+additional permissions.
 
-Additional permission under GNU GPL version 3 section 7
+
+1. Combining with The Witcher 3 and REDkit
+   (additional permission under GNU GPL version 3 section 7)
 
 If you modify this Program, or any covered work, by linking or combining it with
 The Witcher 3: Wild Hunt or The Witcher 3 REDkit, or any of their components (including
@@ -12,6 +16,24 @@ scripts, resources and other game files), provided by CD PROJEKT S.A. (or a modi
 version of those), containing parts covered by the terms of their own license, the
 licensors of this Program grant you additional permission to convey the resulting work.
 
+
+2. License granted to CD PROJEKT S.A.
+
+In addition to the GNU General Public License, the copyright holder of this Program
+grants CD PROJEKT S.A. and the companies of the CD PROJEKT Capital Group a non-exclusive,
+worldwide, royalty-free, perpetual and irrevocable license to use, copy, modify, merge,
+publish, distribute, sublicense and sell this Program and works based on it, in source or
+any other form, including as part of their own products, under any terms of their choice,
+without having to comply with the conditions of the GNU General Public License.
+
+This grant covers the code whose copyright belongs to the copyright holder named above.
+Contributions are accepted only under the same terms (GNU GPL v3 with these additional
+permissions, including this grant).
+
+
 Those parts of The Witcher 3: Wild Hunt and The Witcher 3 REDkit remain the property of
 CD PROJEKT S.A. and are not covered by the GNU General Public License. The Witcher(R) is
 a trademark of CD PROJEKT S.A.
+
+THIS PROGRAM IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, AS STATED IN SECTIONS 15
+AND 16 OF THE GNU GENERAL PUBLIC LICENSE.

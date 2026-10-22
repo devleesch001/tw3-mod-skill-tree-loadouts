@@ -85,7 +85,8 @@ other translations are first versions, corrections are welcome.
 
 The mod's code is released under the **GNU GPL v3.0** (see `LICENSE`, next to this file),
 with an additional permission to combine it with The Witcher 3 and REDkit and convey the
-result (see `LICENSE-EXCEPTION`).
+result, and a license that lets CD PROJEKT RED use it without the GPL conditions
+(see `LICENSE-EXCEPTION`).
 Source code: https://github.com/devleesch001/tw3-mod-skill-tree-loadouts
 
 The game and its files, including the original skills screen this mod modifies, belong to
