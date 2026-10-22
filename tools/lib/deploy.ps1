@@ -47,7 +47,9 @@ function New-StlPackage($Cfg) {
     }
     # the player README and the license ship inside the mod folder, as other mods do
     Copy-Item (Join-Path $Cfg.Paths.Src 'release\README.md') (Join-Path $Cfg.Paths.ModDist 'README.md') -Force
-    Copy-Item (Join-Path $Cfg.Paths.Root 'LICENSE') (Join-Path $Cfg.Paths.ModDist 'LICENSE') -Force
+    foreach ($f in 'LICENSE', 'LICENSE-EXCEPTION') {
+        Copy-Item (Join-Path $Cfg.Paths.Root $f) (Join-Path $Cfg.Paths.ModDist $f) -Force
+    }
     New-Item -ItemType Directory -Force $Cfg.Paths.Release | Out-Null
     $zip = Join-Path $Cfg.Paths.Release ("{0}-{1}.zip" -f ($Cfg.Mod.DisplayName -replace '\s', ''), $Cfg.Mod.Version)
     Remove-Item $zip -ErrorAction SilentlyContinue

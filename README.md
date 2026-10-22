@@ -56,7 +56,10 @@ Le jeu et REDkit sont détectés automatiquement dans les bibliothèques Steam.
 
 ## Licence
 
-Le code de ce projet est distribué sous **GNU GPL v3.0** : voir [`LICENSE`](LICENSE).
+Le code de ce projet est distribué sous **GNU GPL v3.0** : voir [`LICENSE`](LICENSE),
+avec une **permission supplémentaire** (section 7 de la GPL v3) dans
+[`LICENSE-EXCEPTION`](LICENSE-EXCEPTION) : le mod peut être combiné avec The Witcher 3 et
+REDkit et distribué ainsi, sans que les parties de CD PROJEKT RED passent sous GPL.
 
 Sont exclus de cette licence, car ils appartiennent à CD PROJEKT RED : le jeu et ses
 fichiers, dont l'écran des compétences d'origine que modifie le mod, et les parties de
