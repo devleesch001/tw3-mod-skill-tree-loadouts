@@ -82,6 +82,15 @@ struct SStlLoadReport
 @addField(W3PlayerWitcher)
 saved var stlData : CStlData;
 
+// preset shown as active in the skills screen (-1 = none)
+@addMethod(W3PlayerWitcher) function StlSetActive( idx : int )
+{
+	var data : CStlData;
+
+	data = StlGetData();
+	data.activeSlot = idx;
+}
+
 @addMethod(W3PlayerWitcher) function StlGetData() : CStlData
 {
 	if ( !stlData )
@@ -152,7 +161,7 @@ saved var stlData : CStlData;
 	p.used = true;
 	if ( idx != StlUndoIndex() )
 	{
-		StlGetData().activeSlot = idx;
+		StlSetActive( idx );
 	}
 	return true;
 }
@@ -174,11 +183,11 @@ saved var stlData : CStlData;
 	if ( idx != StlUndoIndex() )
 	{
 		StlSave( StlUndoIndex() );
-		StlGetData().activeSlot = idx;
+		StlSetActive( idx );
 	}
 	else
 	{
-		StlGetData().activeSlot = -1;
+		StlSetActive( -1 );
 	}
 
 	// unequips skills + mutagens and refunds all tree points; mutation points are kept
@@ -395,7 +404,7 @@ function StlUsingLegacyTree() : bool
 		return false;
 	}
 	StlSave( StlUndoIndex() );
-	StlGetData().activeSlot = -1;
+	StlSetActive( -1 );
 	ResetCharacterDev();
 	return true;
 }
