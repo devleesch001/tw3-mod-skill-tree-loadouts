@@ -190,6 +190,7 @@ saved var tspData : CTspData;
 {
 	var order : array< int >;
 	var tiers : array< int >;
+	var sk : SSkill;
 	var skill : ESkill;
 	var target, before, missing, i, j, tmp : int;
 	var progress : bool;
@@ -198,7 +199,8 @@ saved var tspData : CTspData;
 	for ( i = 0; i < p.treeSkills.Size(); i += 1 )
 	{
 		order.PushBack( i );
-		tiers.PushBack( GetPlayerSkill( p.treeSkills[ i ] ).requiredPointsSpent );
+		sk = GetPlayerSkill( p.treeSkills[ i ] );
+		tiers.PushBack( sk.requiredPointsSpent );
 	}
 	for ( i = 1; i < order.Size(); i += 1 )
 	{
@@ -324,11 +326,13 @@ saved var tspData : CTspData;
 // skill points a preset's tree costs
 @addMethod(W3PlayerWitcher) function TspPresetCost( p : CTspPreset ) : int
 {
+	var sk : SSkill;
 	var cost, i : int;
 
 	for ( i = 0; i < p.treeSkills.Size(); i += 1 )
 	{
-		cost += GetPlayerSkill( p.treeSkills[ i ] ).cost * p.treeLevels[ i ];
+		sk = GetPlayerSkill( p.treeSkills[ i ] );
+		cost += sk.cost * p.treeLevels[ i ];
 	}
 	return cost;
 }
@@ -405,6 +409,7 @@ function TspLoadAndNotify( idx : int )
 exec function tsp_save( n : int )
 {
 	var w : W3PlayerWitcher;
+	var p : CTspPreset;
 
 	w = GetWitcherPlayer();
 	if ( !TspValidIndex( n ) )
@@ -418,9 +423,10 @@ exec function tsp_save( n : int )
 	}
 	if ( w.TspSave( n - 1 ) )
 	{
+		p = w.TspGetData().Get( n - 1 );
 		TspNotify( w.TspGetData().DisplayName( n - 1 ) + " saved ("
-			+ IntToString( w.TspGetData().Get( n - 1 ).treeSkills.Size() ) + " skills, "
-			+ IntToString( w.TspPresetCost( w.TspGetData().Get( n - 1 ) ) ) + " points)" );
+			+ IntToString( p.treeSkills.Size() ) + " skills, "
+			+ IntToString( w.TspPresetCost( p ) ) + " points)" );
 	}
 }
 
@@ -441,11 +447,13 @@ exec function tsp_undo()
 exec function tsp_name( n : int, newName : string )
 {
 	var w : W3PlayerWitcher;
+	var p : CTspPreset;
 
 	w = GetWitcherPlayer();
 	if ( TspValidIndex( n ) )
 	{
-		w.TspGetData().Get( n - 1 ).label = StrLeft( newName, 24 );
+		p = w.TspGetData().Get( n - 1 );
+		p.label = StrLeft( newName, 24 );
 		TspNotify( w.TspGetData().DisplayName( n - 1 ) );
 	}
 }
