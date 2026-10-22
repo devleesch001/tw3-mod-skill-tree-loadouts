@@ -1,9 +1,10 @@
-# Third-party utils
+# Third-party tools and references (w3stringsr, SkillSlotsPresets...)
 utils/
 
-# Extracted game files and build intermediates
+# Generated: game files cache, build intermediates, built mod, release zips
 work/
+dist/
+release/
 
-# UI bundle, built by tools/build-ui.ps1
-modSkillTreeLoadouts/content/blob0.bundle
-modSkillTreeLoadouts/content/metadata.store
+# Machine-specific settings (see stl.config.psd1)
+stl.local.psd1
