@@ -66,6 +66,11 @@ function Resolve-StlToolchain($Cfg) {
     $w3s = $t.W3Strings
     if ($w3s -and -not [IO.Path]::IsPathRooted($w3s)) { $w3s = Join-Path $Cfg.Paths.Root $w3s }
     $java = Get-Command java -ErrorAction SilentlyContinue
+    $python = $t.Python
+    if (-not $python) {
+        $cmd = Get-Command python -ErrorAction SilentlyContinue
+        if ($cmd) { $python = $cmd.Source }
+    }
 
     [pscustomobject]@{
         GameDir      = $game
@@ -78,6 +83,8 @@ function Resolve-StlToolchain($Cfg) {
         FFDec        = $t.FFDec
         W3Strings    = $w3s
         Java         = if ($java) { $java.Source } else { $null }
+        Python       = $python
+        Cr2wSwf      = Join-Path $PSScriptRoot 'cr2w_swf.py'
     }
 }
 

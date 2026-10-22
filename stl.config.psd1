@@ -26,5 +26,6 @@
         REDkitDir = ''                                        # Steam libraries if empty
         FFDec     = 'C:\Program Files (x86)\FFDec\ffdec-cli.exe'
         W3Strings = 'utils\w3stringsr.exe'                    # "w3strings Remastered", relative to the repo
+        Python    = ''                                        # python on PATH if empty (build time only)
     }
 }

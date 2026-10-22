@@ -1,8 +1,11 @@
 # 'stl.ps1 build': src/ -> dist/Mods/<mod>/content/
 
-function Import-StlRedswf {
-    if (-not ('Cr2wSwf' -as [type])) {
-        Add-Type -Path (Join-Path $PSScriptRoot 'Cr2wSwf.cs')
+# tools/lib/cr2w_swf.py (isolated mode: never imports from the current folder)
+function Invoke-StlCr2w($Tc, [string[]]$PyArgs) {
+    $log = & $Tc.Python -I $Tc.Cr2wSwf @PyArgs 2>&1 | ForEach-Object { "$_" }
+    if ($LASTEXITCODE -ne 0) {
+        $log | Write-Host
+        throw "cr2w_swf.py $($PyArgs[0]) failed"
     }
 }
 
@@ -53,7 +56,7 @@ function Build-StlStrings($Cfg, $Tc) {
 function Get-StlUiStamp($Cfg, [IO.FileInfo[]]$Classes) {
     $parts = @("$($Cfg.Ui.Bundle)|$($Cfg.Ui.Swf)")
     foreach ($f in $Classes | Sort-Object FullName) { $parts += "$($f.FullName)=$((Get-FileHash $f.FullName).Hash)" }
-    $parts += (Get-FileHash (Join-Path $PSScriptRoot 'Cr2wSwf.cs')).Hash
+    $parts += (Get-FileHash (Join-Path $PSScriptRoot 'cr2w_swf.py')).Hash
     $sha = [Security.Cryptography.SHA256]::Create()
     [BitConverter]::ToString($sha.ComputeHash([Text.Encoding]::UTF8.GetBytes($parts -join "`n"))) -replace '-', ''
 }
@@ -75,7 +78,7 @@ function Build-StlUi($Cfg, $Tc, [switch]$Force) {
     }
     Assert-StlTool 'REDkit wcc_lite' $Tc.Wcc
     Assert-StlTool 'FFDec' $Tc.FFDec
-    Import-StlRedswf
+    Assert-StlTool 'Python' $Tc.Python
 
     # 1. original .redswf, extracted once from the game into work/cache
     $original = Join-Path $Cfg.Paths.Cache "$($Cfg.Ui.Bundle -replace '\.bundle$', '')\$($Cfg.Ui.Swf)"
@@ -94,7 +97,7 @@ function Build-StlUi($Cfg, $Tc, [switch]$Force) {
     # 2. its GFx movie, with each class of src/ui recompiled by FFDec
     New-Item -ItemType Directory -Force $Cfg.Paths.Build | Out-Null
     $gfx = Join-Path $Cfg.Paths.Build 'movie.gfx'
-    [IO.File]::WriteAllBytes($gfx, [Cr2wSwf]::ExtractGfx([IO.File]::ReadAllBytes($original)))
+    Invoke-StlCr2w $Tc @('extract', $original, $gfx)
     foreach ($as in $classes) {
         $class = $as.FullName.Substring($uiDir.Length + 1) -replace '\.as$', '' -replace '\\', '.'
         $next = Join-Path $Cfg.Paths.Build 'movie.next.gfx'
@@ -105,15 +108,12 @@ function Build-StlUi($Cfg, $Tc, [switch]$Force) {
         Write-Host "ui: compiled $class"
     }
 
-    # 3. movie back into the .redswf, packed with wcc_lite
-    $patched = [Cr2wSwf]::Patch([IO.File]::ReadAllBytes($original), [IO.File]::ReadAllBytes($gfx))
-    $problem = [Cr2wSwf]::Verify($patched)
-    if ($problem) { throw "ui: patched redswf is invalid: $problem" }
+    # 3. movie back into the .redswf (sizes and CRCs checked by the patcher), packed with wcc_lite
     $pack = Join-Path $Cfg.Paths.Stage 'pack\'
     $packed = Join-Path $Cfg.Paths.Stage 'packed\'
     Remove-Item $pack, $packed -Recurse -Force -ErrorAction SilentlyContinue
     New-Item -ItemType Directory -Force (Join-Path $pack (Split-Path $Cfg.Ui.Swf)), $packed | Out-Null
-    [IO.File]::WriteAllBytes((Join-Path $pack $Cfg.Ui.Swf), $patched)
+    Invoke-StlCr2w $Tc @('patch', $original, $gfx, (Join-Path $pack $Cfg.Ui.Swf))
     Invoke-StlWcc $Tc @('pack', "-dir=$pack", "-outdir=$packed")
     Invoke-StlWcc $Tc @('metadatastore', "-path=$packed")
     Copy-Item (Join-Path $packed 'blob0.bundle'), (Join-Path $packed 'metadata.store') $out -Force

@@ -87,12 +87,17 @@ function Invoke-StlDoctor($Cfg) {
         $fails++
     }
 
-    # C# helper used to patch the .redswf
-    try {
-        Import-StlRedswf
-        Write-StlCheck OK 'redswf patcher' 'tools\lib\Cr2wSwf.cs compiles'
-    } catch {
-        Write-StlCheck FAIL 'redswf patcher' $_.Exception.Message
+    # Python runs tools\lib\cr2w_swf.py, which puts the UI movie back into the .redswf
+    if ($tc.Python -and (Test-Path $tc.Python)) {
+        $pyVer = Get-StlToolVersion $tc.Python @('--version')
+        if ($pyVer -match 'Python 3\.(\d+)' -and [int]$Matches[1] -ge 8) {
+            Write-StlCheck OK 'Python (build only)' "$($tc.Python) - $pyVer"
+        } else {
+            Write-StlCheck FAIL 'Python (build only)' "${pyVer}: Python 3.8 or newer is needed"
+            $fails++
+        }
+    } else {
+        Write-StlCheck FAIL 'Python (build only)' 'python not on PATH: winget install Python.Python.3.13, or set Toolchain.Python'
         $fails++
     }
 
