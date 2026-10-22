@@ -1,4 +1,4 @@
-# 'stl.ps1 build': src/ -> dist/Mods/<mod>/content/
+# 'cli.ps1 build': src/ -> dist/Mods/<mod>/content/
 
 # tools/lib/cr2w_swf.py (isolated mode: never imports from the current folder)
 function Invoke-StlCr2w($Tc, [string[]]$PyArgs) {

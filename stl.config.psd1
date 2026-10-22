@@ -1,4 +1,4 @@
-# Skill Tree Loadouts - project configuration, read by stl.ps1 (data only, never executed).
+# Skill Tree Loadouts - project configuration, read by cli.ps1 (data only, never executed).
 # Machine-specific values go in stl.local.psd1 (not versioned), with the same keys: it is
 # merged over this file. Leave a toolchain path empty to auto-detect it.
 @{

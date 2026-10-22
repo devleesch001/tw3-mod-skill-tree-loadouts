@@ -3,14 +3,14 @@
   Skill Tree Loadouts - development CLI (build, deploy, package, toolchain checks).
 
 .DESCRIPTION
-  .\stl.ps1 doctor             check the toolchain and the game install
-  .\stl.ps1 build [target]     build src/ into dist/  (target: all, scripts, strings, ui)
-  .\stl.ps1 link               junction <GameDir>\Mods\<mod> -> dist\Mods\<mod>
-  .\stl.ps1 unlink             remove that junction
-  .\stl.ps1 run                build all + link + start the game
-  .\stl.ps1 package            zip dist/ into release/ (extract into the game folder)
-  .\stl.ps1 clean              delete dist/ and build intermediates (-All: also the game files cache)
-  .\stl.ps1 help
+  .\cli.ps1 doctor             check the toolchain and the game install
+  .\cli.ps1 build [target]     build src/ into dist/  (target: all, scripts, strings, ui)
+  .\cli.ps1 link               junction <GameDir>\Mods\<mod> -> dist\Mods\<mod>
+  .\cli.ps1 unlink             remove that junction
+  .\cli.ps1 run                build all + link + start the game
+  .\cli.ps1 package            zip dist/ into release/ (extract into the game folder)
+  .\cli.ps1 clean              delete dist/ and build intermediates (-All: also the game files cache)
+  .\cli.ps1 help
 
   -Force    rebuild the UI bundle even if its sources did not change
   -NoBuild  'run' only links and starts the game
@@ -53,7 +53,7 @@ try {
             Write-Host ''
             Write-Host (($h.description | ForEach-Object Text) -join "`n")
         }
-        default   { throw "unknown command '$Command' (try: .\stl.ps1 help)" }
+        default   { throw "unknown command '$Command' (try: .\cli.ps1 help)" }
     }
 } catch {
     Write-Host "error: $($_.Exception.Message)" -ForegroundColor Red

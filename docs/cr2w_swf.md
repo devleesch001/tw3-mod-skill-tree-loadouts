@@ -26,7 +26,7 @@ L'outil officiel de CD Projekt RED, **REDkit**, sait produire un `.redswf`, mais
 **uniquement depuis son éditeur graphique**, dans un projet de mod (voir
 [Virtual depot](https://cdprojektred.atlassian.net/wiki/spaces/W3REDkit/pages/39190599/Virtual+depot+and+source+control)).
 En ligne de commande (`wcc_lite swfimport`), la conversion se fait mais l'enregistrement
-échoue sans projet REDkit. Pour garder un build entièrement automatique (`.\stl.ps1 build`),
+échoue sans projet REDkit. Pour garder un build entièrement automatique (`.\cli.ps1 build`),
 on passe par ce script à la place.
 
 ## Ce qu'il y a dans un `.redswf`
@@ -67,7 +67,7 @@ restent identiques, octet pour octet.
 
 ## Comment il est utilisé
 
-Normalement, **on ne l'appelle jamais à la main** : `.\stl.ps1 build ui` (ou `build`,
+Normalement, **on ne l'appelle jamais à la main** : `.\cli.ps1 build ui` (ou `build`,
 `run`) s'en charge.
 
 ```
@@ -125,5 +125,5 @@ Ces vérifications ont été faites sur le fichier de la version 5.0 du jeu :
 ## Dépendance
 
 Python 3.8 ou plus récent, uniquement la bibliothèque standard (`struct`, `zlib`).
-`.\stl.ps1 doctor` vérifie sa présence ; le chemin se règle dans `stl.config.psd1`
+`.\cli.ps1 doctor` vérifie sa présence ; le chemin se règle dans `stl.config.psd1`
 (`Toolchain.Python`, vide = `python` du PATH).

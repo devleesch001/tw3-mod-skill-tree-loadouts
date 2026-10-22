@@ -1,20 +1,20 @@
-# Thin facade over stl.ps1 for people used to make: every target calls the CLI.
-# The real logic lives in stl.ps1 / tools/lib; use ".\stl.ps1 <command>" directly without make.
+# Thin facade over cli.ps1 for people used to make: every target calls the CLI.
+# The real logic lives in cli.ps1 / tools/lib; use ".\cli.ps1 <command>" directly without make.
 
-STL := powershell -NoProfile -ExecutionPolicy Bypass -File stl.ps1
+CLI := powershell -NoProfile -ExecutionPolicy Bypass -File cli.ps1
 
 .PHONY: all build scripts strings ui link unlink run package clean distclean doctor help
 
 all: build
 
 build:
-	$(STL) build all
+	$(CLI) build all
 
 scripts strings ui:
-	$(STL) build $@
+	$(CLI) build $@
 
 link unlink run package clean doctor help:
-	$(STL) $@
+	$(CLI) $@
 
 distclean:
-	$(STL) clean -All
+	$(CLI) clean -All

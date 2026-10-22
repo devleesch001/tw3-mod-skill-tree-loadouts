@@ -1,4 +1,4 @@
-# 'stl.ps1 link / unlink / run / package / clean'
+# 'cli.ps1 link / unlink / run / package / clean'
 
 # <GameDir>\Mods\<mod> -> dist\Mods\<mod> (junction: the game reads dist directly)
 function Set-StlLink($Cfg) {
@@ -37,7 +37,7 @@ function Start-StlGame($Cfg) {
 function New-StlPackage($Cfg) {
     $content = Join-Path $Cfg.Paths.ModDist 'content'
     foreach ($f in 'scripts\local', 'blob0.bundle', 'metadata.store') {
-        if (-not (Test-Path (Join-Path $content $f))) { throw "package: dist is incomplete ($f), run '.\stl.ps1 build' first" }
+        if (-not (Test-Path (Join-Path $content $f))) { throw "package: dist is incomplete ($f), run '.\cli.ps1 build' first" }
     }
     New-Item -ItemType Directory -Force $Cfg.Paths.Release | Out-Null
     $zip = Join-Path $Cfg.Paths.Release ("{0}-{1}.zip" -f ($Cfg.Mod.DisplayName -replace '\s', ''), $Cfg.Mod.Version)

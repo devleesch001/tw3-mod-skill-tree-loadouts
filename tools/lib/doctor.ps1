@@ -1,4 +1,4 @@
-# 'stl.ps1 doctor': checks every piece of the toolchain and the game install.
+# 'cli.ps1 doctor': checks every piece of the toolchain and the game install.
 
 function Write-StlCheck([string]$Status, [string]$Label, [string]$Detail) {
     $color = @{ OK = 'Green'; WARN = 'Yellow'; FAIL = 'Red'; INFO = 'Gray' }[$Status]
@@ -118,9 +118,9 @@ function Invoke-StlDoctor($Cfg) {
     if ($tc.GameDir) {
         $link = Join-Path $tc.GameDir "Mods\$($Cfg.Mod.Name)"
         $item = Get-Item $link -ErrorAction SilentlyContinue
-        if (-not $item) { Write-StlCheck WARN 'Mod link' "not linked yet: run '.\stl.ps1 link'" }
+        if (-not $item) { Write-StlCheck WARN 'Mod link' "not linked yet: run '.\cli.ps1 link'" }
         elseif ($item.LinkType -eq 'Junction' -and $item.Target -contains $Cfg.Paths.ModDist) { Write-StlCheck OK 'Mod link' "$link -> dist" }
-        elseif ($item.LinkType -eq 'Junction') { Write-StlCheck WARN 'Mod link' "points to $($item.Target): run '.\stl.ps1 link'" }
+        elseif ($item.LinkType -eq 'Junction') { Write-StlCheck WARN 'Mod link' "points to $($item.Target): run '.\cli.ps1 link'" }
         else { Write-StlCheck FAIL 'Mod link' "$link is a real folder, not a junction: move it away"; $fails++ }
     }
     if (Test-StlGameRunning) { Write-StlCheck WARN 'Game process' 'running: the UI bundle cannot be rebuilt until it is closed' }

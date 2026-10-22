@@ -1,4 +1,4 @@
-# Configuration and toolchain resolution for stl.ps1.
+# Configuration and toolchain resolution for cli.ps1.
 
 function Merge-StlHashtable([hashtable]$Base, [hashtable]$Over) {
     foreach ($key in $Over.Keys) {
@@ -95,6 +95,6 @@ function Test-StlGameRunning {
 # throws with a pointer to 'doctor' when a tool needed by a command is missing
 function Assert-StlTool([string]$Name, [string]$Path) {
     if (-not $Path -or -not (Test-Path $Path)) {
-        throw "$Name not found ($Path). Run '.\stl.ps1 doctor' for details."
+        throw "$Name not found ($Path). Run '.\cli.ps1 doctor' for details."
     }
 }
