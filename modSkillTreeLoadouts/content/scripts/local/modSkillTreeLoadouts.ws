@@ -32,6 +32,10 @@ class CStlData
 {
 	saved var presets : array< CStlPreset >;
 
+	// preset last saved or loaded, shown with a gold border (-1 = none)
+	saved var activeSlot : int;
+	default activeSlot = -1;
+
 	// index 0..StlPresetCount()-1 = player presets, StlUndoIndex() = undo backup
 	public function Get( idx : int ) : CStlPreset
 	{
@@ -146,6 +150,10 @@ saved var stlData : CStlData;
 
 	p.mutation = GetEquippedMutationType();
 	p.used = true;
+	if ( idx != StlUndoIndex() )
+	{
+		StlGetData().activeSlot = idx;
+	}
 	return true;
 }
 
@@ -166,6 +174,11 @@ saved var stlData : CStlData;
 	if ( idx != StlUndoIndex() )
 	{
 		StlSave( StlUndoIndex() );
+		StlGetData().activeSlot = idx;
+	}
+	else
+	{
+		StlGetData().activeSlot = -1;
 	}
 
 	// unequips skills + mutagens and refunds all tree points; mutation points are kept
@@ -382,6 +395,7 @@ function StlUsingLegacyTree() : bool
 		return false;
 	}
 	StlSave( StlUndoIndex() );
+	StlGetData().activeSlot = -1;
 	ResetCharacterDev();
 	return true;
 }
@@ -420,10 +434,71 @@ function StlUsingLegacyTree() : bool
 
 // ---- skills screen UI (blob0.bundle, built from ui\scripts by tools\build-ui.ps1) ----
 
-// sent by the modded panel_character_dupe when it opens; for now only proves the bundle loads
+// preset bar state for the Flash side ("character.stl.presets"): one { name, used, active }
+// object per preset
+@addMethod(CR4CharacterDupeMenu) function StlSendPresets()
+{
+	var data : CStlData;
+	var list : CScriptedFlashArray;
+	var item : CScriptedFlashObject;
+	var p : CStlPreset;
+	var i : int;
+
+	data = GetWitcherPlayer().StlGetData();
+	list = m_flashValueStorage.CreateTempFlashArray();
+	for ( i = 0; i < StlPresetCount(); i += 1 )
+	{
+		p = data.Get( i );
+		item = m_flashValueStorage.CreateTempFlashObject();
+		item.SetMemberFlashString( "name", data.DisplayName( i ) );
+		item.SetMemberFlashBool( "used", p.used );
+		item.SetMemberFlashBool( "active", data.activeSlot == i );
+		list.PushBackFlashObject( item );
+	}
+	m_flashValueStorage.SetFlashArray( "character.stl.presets", list );
+}
+
+// sent by the modded panel_character_dupe once it registered "character.stl.presets"
 @addMethod(CR4CharacterDupeMenu) event OnStlUiReady()
 {
-	StlNotify( "Skill Tree Loadouts: UI loaded" );
+	StlSendPresets();
+}
+
+// preset button clicked
+@addMethod(CR4CharacterDupeMenu) event OnStlPresetLoad( idx : int )
+{
+	var p : CStlPreset;
+
+	p = GetWitcherPlayer().StlGetData().Get( idx );
+	if ( !p || !p.used )
+	{
+		OnPlaySoundEvent( "gui_global_denied" );
+		StlNotify( StlLocF( "stl_empty", "$0$ is empty", GetWitcherPlayer().StlGetData().DisplayName( idx ) )
+			+ "<br>" + StlLoc( "stl_hold_to_save", "Hold the button to save" ) );
+	}
+	else if ( StlLoadAndNotify( idx ) )
+	{
+		OnPlaySoundEvent( "gui_character_add_skill" );
+	}
+	else
+	{
+		OnPlaySoundEvent( "gui_global_denied" );
+	}
+	StlSendPresets();
+}
+
+// preset button held down
+@addMethod(CR4CharacterDupeMenu) event OnStlPresetSave( idx : int )
+{
+	if ( StlSaveAndNotify( idx ) )
+	{
+		OnPlaySoundEvent( "gui_character_buy_skill" );
+	}
+	else
+	{
+		OnPlaySoundEvent( "gui_global_denied" );
+	}
+	StlSendPresets();
 }
 
 // redraws the skills screen if it is the menu currently shown
@@ -555,7 +630,7 @@ function StlValidIndex( n : int ) : bool
 	return true;
 }
 
-function StlLoadAndNotify( idx : int )
+function StlLoadAndNotify( idx : int ) : bool
 {
 	var w : W3PlayerWitcher;
 	var report : SStlLoadReport;
@@ -564,40 +639,47 @@ function StlLoadAndNotify( idx : int )
 	if ( w.IsInCombat() )
 	{
 		StlCombatDenied();
-		return;
+		return false;
 	}
 	if ( !w.StlLoad( idx, report ) )
 	{
 		StlNotify( StlLocF( "stl_empty", "$0$ is empty", w.StlGetData().DisplayName( idx ) ) );
-		return;
+		return false;
 	}
 	StlRefreshCharacterMenu();
 	StlNotify( StlLocF( "stl_loaded", "$0$ loaded", w.StlGetData().DisplayName( idx ) ) + StlReportText( report ) );
+	return true;
+}
+
+function StlSaveAndNotify( idx : int ) : bool
+{
+	var w : W3PlayerWitcher;
+	var p : CStlPreset;
+
+	w = GetWitcherPlayer();
+	if ( w.IsInCombat() )
+	{
+		StlCombatDenied();
+		return false;
+	}
+	if ( !w.StlSave( idx ) )
+	{
+		return false;
+	}
+	p = w.StlGetData().Get( idx );
+	StlNotify( StlLocF( "stl_saved", "$0$ saved ($1$ skills, $2$ points)", w.StlGetData().DisplayName( idx ),
+		IntToString( p.treeSkills.Size() ), IntToString( w.StlPresetCost( p ) ) )
+		+ StlPresetSummary( p ) );
+	return true;
 }
 
 // ---- debug console ----
 
 exec function stl_save( n : int )
 {
-	var w : W3PlayerWitcher;
-	var p : CStlPreset;
-
-	w = GetWitcherPlayer();
-	if ( !StlValidIndex( n ) )
+	if ( StlValidIndex( n ) )
 	{
-		return;
-	}
-	if ( w.IsInCombat() )
-	{
-		StlCombatDenied();
-		return;
-	}
-	if ( w.StlSave( n - 1 ) )
-	{
-		p = w.StlGetData().Get( n - 1 );
-		StlNotify( StlLocF( "stl_saved", "$0$ saved ($1$ skills, $2$ points)", w.StlGetData().DisplayName( n - 1 ),
-			IntToString( p.treeSkills.Size() ), IntToString( w.StlPresetCost( p ) ) )
-			+ StlPresetSummary( p ) );
+		StlSaveAndNotify( n - 1 );
 	}
 }
 

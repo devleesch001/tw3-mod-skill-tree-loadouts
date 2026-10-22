@@ -5,11 +5,16 @@ package red.game.witcher3.menus.character_menu
    import com.gskinner.motion.easing.Sine;
    import flash.display.DisplayObject;
    import flash.display.MovieClip;
+   import flash.display.Sprite;
    import flash.events.Event;
    import flash.events.MouseEvent;
    import flash.geom.Point;
+   import flash.geom.Rectangle;
    import flash.text.TextField;
+   import flash.text.TextFormat;
+   import flash.text.TextFormatAlign;
    import flash.utils.getDefinitionByName;
+   import flash.utils.getTimer;
    import flash.utils.setTimeout;
    import red.core.CoreMenu;
    import red.core.constants.KeyCode;
@@ -97,7 +102,35 @@ package red.game.witcher3.menus.character_menu
       private var _btn_right_tab:int = -1;
       
       private var _isMutationInited:Boolean = false;
-      
+
+      // ---- Skill Tree Loadouts: preset bar ----
+
+      private const STL_COUNT:int = 5;
+
+      private const STL_HOLD_MS:int = 1000;
+
+      private const STL_BTN_W:Number = 168;
+
+      private const STL_BTN_H:Number = 44;
+
+      private const STL_BTN_GAP:Number = 12;
+
+      private var _stlBar:Sprite;
+
+      private var _stlButtons:Array = [];
+
+      private var _stlLabels:Array = [];
+
+      private var _stlData:Array = [];
+
+      private var _stlHover:int = -1;
+
+      private var _stlHoldIdx:int = -1;
+
+      private var _stlHoldStart:int = 0;
+
+      private var _stlHoldSaved:Boolean = false;
+
       public function MenuCharacterDupe()
       {
          super();
@@ -137,8 +170,6 @@ package red.game.witcher3.menus.character_menu
       {
          var isSwitch2Mouser:Boolean = false;
          super.configUI();
-         // Skill Tree Loadouts: tells the script the modded screen is loaded
-         dispatchEvent(new GameEvent(GameEvent.CALL,"OnStlUiReady",[]));
          if(this.mcRunewordIcon)
          {
             this.mcRunewordIcon.visible = false;
@@ -160,6 +191,10 @@ package red.game.witcher3.menus.character_menu
          dispatchEvent(new GameEvent(GameEvent.REGISTER,"character.paperdoll.changed",[this.onPaperdollChanged]));
          dispatchEvent(new GameEvent(GameEvent.REGISTER,"character.mutations.list",[this.setMutationDataList]));
          dispatchEvent(new GameEvent(GameEvent.REGISTER,"character.mutation",[this.setSingleMutationData]));
+         // Skill Tree Loadouts: preset bar, filled by the script once it knows the bar exists
+         this.stlCreateBar();
+         dispatchEvent(new GameEvent(GameEvent.REGISTER,"character.stl.presets",[this.stlSetPresets]));
+         dispatchEvent(new GameEvent(GameEvent.CALL,"OnStlUiReady",[]));
          if(!Extensions.isScaleform)
          {
             this.initDebugData();
@@ -583,6 +618,7 @@ package red.game.witcher3.menus.character_menu
             this.mcPointIcon.visible = false;
             this.mcPointsBorder.visible = false;
             this.mcRunewordIcon.visible = false;
+            this._stlBar.visible = false;
             this.btnMutationMode.visible = false;
             this.mcMutationPanel.visible = true;
             this.mcMutationPanel.alpha = 0;
@@ -615,6 +651,7 @@ package red.game.witcher3.menus.character_menu
          this.mcPointIcon.visible = true;
          this.mcRunewordIcon.alpha = 1;
          this.txfAvailablePoints.alpha = 1;
+         this._stlBar.visible = true;
       }
       
       protected function showFullStats() : void
@@ -921,6 +958,159 @@ package red.game.witcher3.menus.character_menu
          this.txfPointsValue.text = curPoint.toString();
          this.txfAvailablePoints.text = CommonUtils.toUpperCaseSafe(this.txfAvailablePoints.text);
          this.txfAvailablePoints.x = this.txfPointsValue.x + this.txfPointsValue.width - this.txfPointsValue.textWidth - this.POINTS_AVAILABLE_GAP - this.txfAvailablePoints.width;
+      }
+
+      // ---- Skill Tree Loadouts: preset bar ----
+      // One button per preset under the equipped skills: click = OnStlPresetLoad(idx),
+      // hold STL_HOLD_MS = OnStlPresetSave(idx). The script answers with "character.stl.presets".
+
+      private function stlCreateBar() : void
+      {
+         var i:int = 0;
+         var btn:Sprite = null;
+         var label:TextField = null;
+         var fmt:TextFormat = this.txfAvailablePoints.getTextFormat();
+         fmt.size = 22;
+         fmt.align = TextFormatAlign.CENTER;
+         this._stlBar = new Sprite();
+         for(i = 0; i < this.STL_COUNT; i++)
+         {
+            btn = new Sprite();
+            btn.name = "stlPreset" + i;
+            btn.x = i * (this.STL_BTN_W + this.STL_BTN_GAP);
+            btn.buttonMode = true;
+            btn.mouseChildren = false;
+            label = new TextField();
+            label.embedFonts = this.txfAvailablePoints.embedFonts;
+            label.defaultTextFormat = fmt;
+            label.selectable = false;
+            label.mouseEnabled = false;
+            label.x = 4;
+            label.width = this.STL_BTN_W - 8;
+            label.height = 30;
+            label.y = (this.STL_BTN_H - label.height) / 2;
+            btn.addChild(label);
+            btn.addEventListener(MouseEvent.MOUSE_DOWN,this.stlOnMouseDown,false,0,true);
+            btn.addEventListener(MouseEvent.ROLL_OVER,this.stlOnRollOver,false,0,true);
+            btn.addEventListener(MouseEvent.ROLL_OUT,this.stlOnRollOut,false,0,true);
+            this._stlBar.addChild(btn);
+            this._stlButtons.push(btn);
+            this._stlLabels.push(label);
+         }
+         addChild(this._stlBar);
+         this.stlLayout();
+         this.stlRedrawAll();
+      }
+
+      // centred under the equipped skill slots, on the "available points" line
+      private function stlLayout() : void
+      {
+         var slots:Rectangle = this.moduleSkillSlot.getBounds(this);
+         var total:Number = this.STL_COUNT * this.STL_BTN_W + (this.STL_COUNT - 1) * this.STL_BTN_GAP;
+         this._stlBar.x = Math.round(slots.x + (slots.width - total) / 2);
+         this._stlBar.y = Math.round(this.txfAvailablePoints.y + (this.txfAvailablePoints.height - this.STL_BTN_H) / 2);
+      }
+
+      public function stlSetPresets(value:Array) : void
+      {
+         this._stlData = value ? value : [];
+         this.stlRedrawAll();
+      }
+
+      private function stlRedrawAll() : void
+      {
+         var i:int = 0;
+         for(i = 0; i < this._stlButtons.length; i++)
+         {
+            this.stlRedraw(i);
+         }
+      }
+
+      private function stlRedraw(idx:int) : void
+      {
+         var btn:Sprite = this._stlButtons[idx] as Sprite;
+         var label:TextField = this._stlLabels[idx] as TextField;
+         var data:Object = idx < this._stlData.length ? this._stlData[idx] : null;
+         var used:Boolean = Boolean(data) && Boolean(data.used);
+         var active:Boolean = Boolean(data) && Boolean(data.active);
+         var hover:Boolean = this._stlHover == idx;
+         var progress:Number = 0;
+         var border:uint = active ? 0xD9B45A : (hover ? 0xBFA36A : 0x6B5F48);
+         if(this._stlHoldIdx == idx && !this._stlHoldSaved)
+         {
+            progress = Math.min(1,(getTimer() - this._stlHoldStart) / this.STL_HOLD_MS);
+         }
+         btn.graphics.clear();
+         btn.graphics.lineStyle(active ? 2 : 1,border,1);
+         btn.graphics.beginFill(hover ? 0x2A241A : 0x000000,hover ? 0.8 : 0.55);
+         btn.graphics.drawRect(0,0,this.STL_BTN_W,this.STL_BTN_H);
+         btn.graphics.endFill();
+         if(progress > 0)
+         {
+            btn.graphics.lineStyle();
+            btn.graphics.beginFill(0xD9B45A,0.45);
+            btn.graphics.drawRect(1,1,(this.STL_BTN_W - 2) * progress,this.STL_BTN_H - 2);
+            btn.graphics.endFill();
+         }
+         label.text = data ? String(data.name) : "";
+         label.textColor = used ? 0xFFFFFF : 0x8C8C8C;
+      }
+
+      private function stlIndexOf(target:Object) : int
+      {
+         return this._stlButtons.indexOf(target);
+      }
+
+      private function stlOnRollOver(event:MouseEvent) : void
+      {
+         this._stlHover = this.stlIndexOf(event.currentTarget);
+         this.stlRedrawAll();
+      }
+
+      private function stlOnRollOut(event:MouseEvent) : void
+      {
+         this._stlHover = -1;
+         this.stlRedrawAll();
+      }
+
+      private function stlOnMouseDown(event:MouseEvent) : void
+      {
+         this._stlHoldIdx = this.stlIndexOf(event.currentTarget);
+         this._stlHoldStart = getTimer();
+         this._stlHoldSaved = false;
+         stage.addEventListener(MouseEvent.MOUSE_UP,this.stlOnMouseUp,false,0,true);
+         addEventListener(Event.ENTER_FRAME,this.stlOnHoldFrame,false,0,true);
+      }
+
+      private function stlOnHoldFrame(event:Event) : void
+      {
+         if(this._stlHoldIdx < 0)
+         {
+            return;
+         }
+         if(!this._stlHoldSaved && getTimer() - this._stlHoldStart >= this.STL_HOLD_MS)
+         {
+            this._stlHoldSaved = true;
+            dispatchEvent(new GameEvent(GameEvent.CALL,"OnStlPresetSave",[this._stlHoldIdx]));
+         }
+         this.stlRedraw(this._stlHoldIdx);
+      }
+
+      // released before the hold time over the same button: load; otherwise nothing more to do
+      private function stlOnMouseUp(event:MouseEvent) : void
+      {
+         var idx:int = this._stlHoldIdx;
+         stage.removeEventListener(MouseEvent.MOUSE_UP,this.stlOnMouseUp);
+         removeEventListener(Event.ENTER_FRAME,this.stlOnHoldFrame);
+         this._stlHoldIdx = -1;
+         if(idx >= 0 && !this._stlHoldSaved && this._stlHover == idx)
+         {
+            dispatchEvent(new GameEvent(GameEvent.CALL,"OnStlPresetLoad",[idx]));
+         }
+         if(idx >= 0)
+         {
+            this.stlRedraw(idx);
+         }
       }
       
       protected function callNotifyNotEnoughtPoints() : void

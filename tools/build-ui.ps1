@@ -69,5 +69,8 @@ python -I (Join-Path $PSScriptRoot "cr2w_swf.py") patch $original $gfx (Join-Pat
 if ($LASTEXITCODE -ne 0) { throw "redswf patch failed" }
 Invoke-Wcc @("pack", "-dir=$stage", "-outdir=$bundle")
 Invoke-Wcc @("metadatastore", "-path=$bundle")
+if (Get-Process witcher3 -ErrorAction SilentlyContinue) {
+    throw "The game is running and locks the mod bundle: quit it, then run this script again (built bundle kept in $bundle)"
+}
 Copy-Item (Join-Path $bundle "blob0.bundle"), (Join-Path $bundle "metadata.store") $modDir -Force
 Write-Host "UI bundle written to $modDir"
