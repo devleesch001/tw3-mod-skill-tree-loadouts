@@ -1,10 +1,10 @@
 # Third-party tools and references (w3stringsr, SkillSlotsPresets...)
-utils/
+/utils/
 
 # Generated: game files cache, build intermediates, built mod, release zips
-work/
-dist/
-release/
+/work/
+/dist/
+/release/
 
 # Machine-specific settings (see stl.config.psd1)
-stl.local.psd1
+/stl.local.psd1

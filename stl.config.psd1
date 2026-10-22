@@ -5,11 +5,12 @@
     Mod = @{
         Name        = 'modSkillTreeLoadouts'     # folder under <GameDir>\Mods
         DisplayName = 'Skill Tree Loadouts'
-        Version     = '0.1.0'
+        Version     = '1.0.0'
     }
 
     Strings = @{
-        # string ids are 211<IdSpace>000..211<IdSpace>999, as in src/strings/*.csv
+        # string ids are 21<IdSpace>NNN (4 digits: 211nnnnNNN, 5 digits: 21nnnnnNNN), as in
+        # src/strings/*.csv. Use the Nexus mod id once the mod page exists.
         IdSpace   = 7351
         Languages = @('en', 'fr')                # src/strings/<lang>.csv -> <lang>.w3strings
     }

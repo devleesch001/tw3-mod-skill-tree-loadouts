@@ -39,12 +39,28 @@ function Build-StlScripts($Cfg) {
     Write-Host "scripts: $($files.Count) file(s)"
 }
 
-# src/strings/<lang>.csv -> <lang>.w3strings (v164, the format Remastered reads)
+# first string id of the id space: 211nnnn000 (4 digits) or 21nnnnn000 (5 digits)
+function Get-StlStringBase([int]$IdSpace) {
+    if ($IdSpace -lt 10000) { return [long]2110000000 + [long]$IdSpace * 1000 }
+    [long]2100000000 + [long]$IdSpace * 1000
+}
+
+# src/strings/<lang>.csv -> <lang>.w3strings (v164, the format Remastered reads).
+# Only the last 3 digits of each id in the csv matter: the id space comes from the config.
 function Build-StlStrings($Cfg, $Tc) {
     Assert-StlTool 'w3strings encoder' $Tc.W3Strings
     $out = Get-StlContentDir $Cfg
+    $base = Get-StlStringBase $Cfg.Strings.IdSpace
+    $tmp = Join-Path $Cfg.Paths.Build 'strings'
+    New-Item -ItemType Directory -Force $tmp | Out-Null
+    $utf8 = New-Object Text.UTF8Encoding $false
     foreach ($lang in $Cfg.Strings.Languages) {
-        $csv = Join-Path $Cfg.Paths.Src "strings\$lang.csv"
+        $lines = [IO.File]::ReadAllLines((Join-Path $Cfg.Paths.Src "strings\$lang.csv"), $utf8)
+        $lines = $lines | ForEach-Object {
+            if ($_ -match '^(\d{10})\|') { ($base + [long]$Matches[1] % 1000).ToString() + $_.Substring(10) } else { $_ }
+        }
+        $csv = Join-Path $tmp "$lang.csv"
+        [IO.File]::WriteAllLines($csv, [string[]]$lines, $utf8)
         $target = Join-Path $out "$lang.w3strings"
         $log = & $Tc.W3Strings --id-space $Cfg.Strings.IdSpace $csv $target 2>&1 | ForEach-Object { "$_" }
         if ($LASTEXITCODE -ne 0) { $log | Write-Host; throw "strings: encoding $lang.csv failed" }

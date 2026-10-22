@@ -35,10 +35,13 @@ function Start-StlGame($Cfg) {
 
 # zip of dist/, laid out like the game folder: extract it into <GameDir>
 function New-StlPackage($Cfg) {
+    if (Test-StlGameRunning) { throw 'package: the game is running and locks the mod bundle; quit it first' }
     $content = Join-Path $Cfg.Paths.ModDist 'content'
     foreach ($f in 'scripts\local', 'blob0.bundle', 'metadata.store') {
         if (-not (Test-Path (Join-Path $content $f))) { throw "package: dist is incomplete ($f), run '.\cli.ps1 build' first" }
     }
+    # the player README ships inside the mod folder, as other mods do
+    Copy-Item (Join-Path $Cfg.Paths.Src 'release\README.md') (Join-Path $Cfg.Paths.ModDist 'README.md') -Force
     New-Item -ItemType Directory -Force $Cfg.Paths.Release | Out-Null
     $zip = Join-Path $Cfg.Paths.Release ("{0}-{1}.zip" -f ($Cfg.Mod.DisplayName -replace '\s', ''), $Cfg.Mod.Version)
     Remove-Item $zip -ErrorAction SilentlyContinue
