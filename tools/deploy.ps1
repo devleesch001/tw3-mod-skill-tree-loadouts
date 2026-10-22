@@ -1,5 +1,5 @@
 <#
-  Deploys modTrueSkillPresets to the game by linking (junction) the workspace mod folder
+  Deploys Skill Tree Loadouts (modSkillTreeLoadouts) to the game by linking (junction) the workspace mod folder
   into <GameDir>\Mods. Safe to run repeatedly.
 
     .\tools\deploy.ps1            # create/verify the junction
@@ -11,7 +11,7 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
-$modName = "modTrueSkillPresets"
+$modName = "modSkillTreeLoadouts"
 $source  = Join-Path (Split-Path $PSScriptRoot -Parent) $modName
 $target  = Join-Path $GameDir "Mods\$modName"
 

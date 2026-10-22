@@ -1,21 +1,21 @@
-// modTrueSkillPresets: full skill-tree presets.
+// Skill Tree Loadouts: full skill-tree presets.
 // A preset stores the whole tree (every bought skill and its level), the equipped skill
 // slots, the skill mutagens and the Blood and Wine mutation. Loading one refunds every tree
 // point (same as a Potion of Clearance, without using one) and buys the saved tree back with
 // the player's own points, then re-equips slots, mutation and mutagens.
 
-function TspPresetCount() : int
+function StlPresetCount() : int
 {
 	return 5;
 }
 
-// extra hidden preset holding the build that was active before the last load (tsp_undo)
-function TspUndoIndex() : int
+// extra hidden preset holding the build that was active before the last load (stl_undo)
+function StlUndoIndex() : int
 {
-	return TspPresetCount();
+	return StlPresetCount();
 }
 
-class CTspPreset
+class CStlPreset
 {
 	saved var used			: bool;
 	saved var label			: string;
@@ -28,16 +28,16 @@ class CTspPreset
 	saved var mutation		: EPlayerMutationType;
 }
 
-class CTspData
+class CStlData
 {
-	saved var presets : array< CTspPreset >;
+	saved var presets : array< CStlPreset >;
 
-	// index 0..TspPresetCount()-1 = player presets, TspUndoIndex() = undo backup
-	public function Get( idx : int ) : CTspPreset
+	// index 0..StlPresetCount()-1 = player presets, StlUndoIndex() = undo backup
+	public function Get( idx : int ) : CStlPreset
 	{
-		while ( presets.Size() < TspPresetCount() + 1 )
+		while ( presets.Size() < StlPresetCount() + 1 )
 		{
-			presets.PushBack( new CTspPreset in this );
+			presets.PushBack( new CStlPreset in this );
 		}
 		if ( idx < 0 || idx >= presets.Size() )
 		{
@@ -48,23 +48,23 @@ class CTspData
 
 	public function DisplayName( idx : int ) : string
 	{
-		var p : CTspPreset;
+		var p : CStlPreset;
 
 		p = Get( idx );
 		if ( p && p.label != "" )
 		{
 			return p.label;
 		}
-		if ( idx == TspUndoIndex() )
+		if ( idx == StlUndoIndex() )
 		{
-			return "Previous build";
+			return StlLoc( "stl_previous_build", "Previous build" );
 		}
-		return "Preset " + IntToString( idx + 1 );
+		return StlLocF( "stl_preset_name", "Preset {0}", IntToString( idx + 1 ) );
 	}
 }
 
 // what could not be restored by a load
-struct STspLoadReport
+struct SStlLoadReport
 {
 	var missingLevels	: int;
 	var failedSkills	: array< ESkill >;
@@ -76,29 +76,29 @@ struct STspLoadReport
 }
 
 @addField(W3PlayerWitcher)
-saved var tspData : CTspData;
+saved var stlData : CStlData;
 
-@addMethod(W3PlayerWitcher) function TspGetData() : CTspData
+@addMethod(W3PlayerWitcher) function StlGetData() : CStlData
 {
-	if ( !tspData )
+	if ( !stlData )
 	{
-		tspData = new CTspData in this;
+		stlData = new CStlData in this;
 	}
-	return tspData;
+	return stlData;
 }
 
 // ---- save ----
 
-@addMethod(W3PlayerWitcher) function TspSave( idx : int ) : bool
+@addMethod(W3PlayerWitcher) function StlSave( idx : int ) : bool
 {
-	var p : CTspPreset;
+	var p : CStlPreset;
 	var sk : SSkill;
 	var slots : array< SSkillSlot >;
 	var muts : array< SMutagenSlot >;
 	var item : SItemUniqueId;
 	var i, maxSkill : int;
 
-	p = TspGetData().Get( idx );
+	p = StlGetData().Get( idx );
 	if ( !p )
 	{
 		return false;
@@ -151,27 +151,27 @@ saved var tspData : CTspData;
 
 // ---- load ----
 
-@addMethod(W3PlayerWitcher) function TspLoad( idx : int, out report : STspLoadReport ) : bool
+@addMethod(W3PlayerWitcher) function StlLoad( idx : int, out report : SStlLoadReport ) : bool
 {
-	var p : CTspPreset;
+	var p : CStlPreset;
 	var failed : array< ESkill >;
 
-	p = TspGetData().Get( idx );
+	p = StlGetData().Get( idx );
 	if ( !p || !p.used || IsInCombat() )
 	{
 		return false;
 	}
 
 	// keep the current build so a bad load can be undone
-	if ( idx != TspUndoIndex() )
+	if ( idx != StlUndoIndex() )
 	{
-		TspSave( TspUndoIndex() );
+		StlSave( StlUndoIndex() );
 	}
 
 	// unequips skills + mutagens and refunds all tree points; mutation points are kept
 	ResetCharacterDev();
 
-	report.missingLevels = TspRebuyTree( p, failed );
+	report.missingLevels = StlRebuyTree( p, failed );
 	report.failedSkills = failed;
 
 	// mutation before slots: it decides whether the 4 extra slots can be used
@@ -181,8 +181,8 @@ saved var tspData : CTspData;
 	}
 
 	report.savedSlots = p.slotIds.Size();
-	report.missingSlots = TspEquipSlots( p );
-	report.missingMutagens = TspEquipMutagens( p );
+	report.missingSlots = StlEquipSlots( p );
+	report.missingMutagens = StlEquipMutagens( p );
 	report.pointsLeft = levelManager.GetPointsFree( ESkillPoint );
 	return true;
 }
@@ -191,7 +191,7 @@ saved var tspData : CTspData;
 // tier threshold for skills that are neither reworked nor unchanged-legacy) and free points.
 // The Remastered screen ignores requiredPointsSpent for every skill (it sends
 // 'hasRequiredPointsSpent' = true), but the legacy screen locks by it.
-@addMethod(W3PlayerWitcher) function TspCanBuy( skill : ESkill, legacyTree : bool ) : bool
+@addMethod(W3PlayerWitcher) function StlCanBuy( skill : ESkill, legacyTree : bool ) : bool
 {
 	if ( !CanLearnSkill( skill ) )
 	{
@@ -200,7 +200,7 @@ saved var tspData : CTspData;
 	return !legacyTree || HasSpentEnoughPoints( skill );
 }
 
-function TspUsingLegacyTree() : bool
+function StlUsingLegacyTree() : bool
 {
 	return (bool)theGame.GetInGameConfigWrapper().GetVarValue( 'RemasterCombat', 'UseLegacySkillTree' );
 }
@@ -209,7 +209,7 @@ function TspUsingLegacyTree() : bool
 // the points their tier requires, and passes repeat until nothing more can be bought, so
 // tier thresholds and skill dependencies (Remastered tree) are met in any order.
 // Returns the number of levels that could not be bought; 'failed' lists those skills.
-@addMethod(W3PlayerWitcher) function TspRebuyTree( p : CTspPreset, out failed : array< ESkill > ) : int
+@addMethod(W3PlayerWitcher) function StlRebuyTree( p : CStlPreset, out failed : array< ESkill > ) : int
 {
 	var legacyTree : bool;
 	var order : array< int >;
@@ -219,7 +219,7 @@ function TspUsingLegacyTree() : bool
 	var target, before, missing, i, j, tmp : int;
 	var progress : bool;
 
-	legacyTree = TspUsingLegacyTree();
+	legacyTree = StlUsingLegacyTree();
 
 	// sort preset entries by required points (insertion sort on indexes)
 	for ( i = 0; i < p.treeSkills.Size(); i += 1 )
@@ -248,11 +248,11 @@ function TspUsingLegacyTree() : bool
 		{
 			skill = p.treeSkills[ order[ i ] ];
 			target = Min( p.treeLevels[ order[ i ] ], GetSkillMaxLevel( skill ) );
-			while ( TspBoughtLevel( skill ) < target && TspCanBuy( skill, legacyTree ) )
+			while ( StlBoughtLevel( skill ) < target && StlCanBuy( skill, legacyTree ) )
 			{
-				before = TspBoughtLevel( skill );
+				before = StlBoughtLevel( skill );
 				AddSkill( skill );
-				if ( TspBoughtLevel( skill ) <= before )
+				if ( StlBoughtLevel( skill ) <= before )
 				{
 					break;
 				}
@@ -265,9 +265,9 @@ function TspUsingLegacyTree() : bool
 	{
 		skill = p.treeSkills[ i ];
 		target = Min( p.treeLevels[ i ], GetSkillMaxLevel( skill ) );
-		if ( TspBoughtLevel( skill ) < target )
+		if ( StlBoughtLevel( skill ) < target )
 		{
-			missing += target - TspBoughtLevel( skill );
+			missing += target - StlBoughtLevel( skill );
 			failed.PushBack( skill );
 		}
 	}
@@ -275,13 +275,13 @@ function TspUsingLegacyTree() : bool
 }
 
 // level actually bought (W3PlayerWitcher.GetSkillLevel can include bonuses)
-@addMethod(W3PlayerWitcher) function TspBoughtLevel( skill : ESkill ) : int
+@addMethod(W3PlayerWitcher) function StlBoughtLevel( skill : ESkill ) : int
 {
 	return ( (W3PlayerAbilityManager)abilityManager ).GetBoughtSkillLevel( skill );
 }
 
 // returns the number of saved skills that could not be put back in their slot
-@addMethod(W3PlayerWitcher) function TspEquipSlots( p : CTspPreset ) : int
+@addMethod(W3PlayerWitcher) function StlEquipSlots( p : CStlPreset ) : int
 {
 	var slots : array< SSkillSlot >;
 	var missing, i, j : int;
@@ -311,7 +311,7 @@ function TspUsingLegacyTree() : bool
 }
 
 // returns the number of saved mutagens that could not be equipped
-@addMethod(W3PlayerWitcher) function TspEquipMutagens( p : CTspPreset ) : int
+@addMethod(W3PlayerWitcher) function StlEquipMutagens( p : CStlPreset ) : int
 {
 	var pam : W3PlayerAbilityManager;
 	var item : SItemUniqueId;
@@ -321,7 +321,7 @@ function TspUsingLegacyTree() : bool
 	for ( i = 0; i < p.mutagenSlots.Size(); i += 1 )
 	{
 		if ( pam.IsSkillMutagenSlotUnlocked( p.mutagenSlots[ i ] )
-			&& TspFindFreeItem( p.mutagenNames[ i ], item )
+			&& StlFindFreeItem( p.mutagenNames[ i ], item )
 			&& EquipItemInGivenSlot( item, p.mutagenSlots[ i ], false ) )
 		{
 			continue;
@@ -332,7 +332,7 @@ function TspUsingLegacyTree() : bool
 }
 
 // an unequipped inventory item with this name
-@addMethod(W3PlayerWitcher) function TspFindFreeItem( itemName : name, out item : SItemUniqueId ) : bool
+@addMethod(W3PlayerWitcher) function StlFindFreeItem( itemName : name, out item : SItemUniqueId ) : bool
 {
 	var ids : array< SItemUniqueId >;
 	var i : int;
@@ -354,7 +354,7 @@ function TspUsingLegacyTree() : bool
 }
 
 // skill points a preset's tree costs
-@addMethod(W3PlayerWitcher) function TspPresetCost( p : CTspPreset ) : int
+@addMethod(W3PlayerWitcher) function StlPresetCost( p : CStlPreset ) : int
 {
 	var sk : SSkill;
 	var cost, i : int;
@@ -368,20 +368,20 @@ function TspUsingLegacyTree() : bool
 }
 
 // points the tree can use after a refund (mutation points stay spent)
-@addMethod(W3PlayerWitcher) function TspTreePointsAvailable() : int
+@addMethod(W3PlayerWitcher) function StlTreePointsAvailable() : int
 {
 	return levelManager.GetPointsFree( ESkillPoint ) + levelManager.GetPointsUsed( ESkillPoint )
 		- ( (W3PlayerAbilityManager)abilityManager ).GetMutationsUsedSkillPoints();
 }
 
 // refunds every tree point without a potion; the current build goes to the undo slot
-@addMethod(W3PlayerWitcher) function TspResetTree() : bool
+@addMethod(W3PlayerWitcher) function StlResetTree() : bool
 {
 	if ( IsInCombat() )
 	{
 		return false;
 	}
-	TspSave( TspUndoIndex() );
+	StlSave( StlUndoIndex() );
 	ResetCharacterDev();
 	return true;
 }
@@ -390,7 +390,7 @@ function TspUsingLegacyTree() : bool
 // The skills screen caches what it shows; after a change made outside of it (console),
 // redraw it the same way it redraws itself after buying or equipping a skill.
 
-@addMethod(CR4CharacterDupeMenu) function TspRefresh()
+@addMethod(CR4CharacterDupeMenu) function StlRefresh()
 {
 	var slots : array< SSkillSlot >;
 	var i : int;
@@ -404,7 +404,7 @@ function TspUsingLegacyTree() : bool
 	UpdateMasterMutation();
 }
 
-@addMethod(CR4CharacterMenu) function TspRefresh()
+@addMethod(CR4CharacterMenu) function StlRefresh()
 {
 	var slots : array< SSkillSlot >;
 	var i : int;
@@ -419,7 +419,7 @@ function TspUsingLegacyTree() : bool
 }
 
 // redraws the skills screen if it is the menu currently shown
-function TspRefreshCharacterMenu()
+function StlRefreshCharacterMenu()
 {
 	var root : CR4MenuBase;
 	var last : CR4MenuBase;
@@ -435,20 +435,51 @@ function TspRefreshCharacterMenu()
 	dupe = (CR4CharacterDupeMenu)last;
 	if ( dupe )
 	{
-		dupe.TspRefresh();
+		dupe.StlRefresh();
 		return;
 	}
 	legacy = (CR4CharacterMenu)last;
 	if ( legacy )
 	{
-		legacy.TspRefresh();
+		legacy.StlRefresh();
 	}
 }
 
 // ---- notifications ----
 
+// Mod text from <lang>.w3strings (strings/*.csv); the English fallback is used when the game
+// language has no translation for the mod.
+function StlLoc( key : string, fallback : string ) : string
+{
+	var s : string;
+
+	s = GetLocStringByKeyExt( key );
+	if ( s == "" )
+	{
+		return fallback;
+	}
+	return s;
+}
+
+// StlLoc with {0}, {1}, {2} replaced by the given values
+function StlLocF( key : string, fallback : string, optional a : string, optional b : string, optional c : string ) : string
+{
+	var s : string;
+
+	s = StlLoc( key, fallback );
+	s = StrReplaceAll( s, "{0}", a );
+	s = StrReplaceAll( s, "{1}", b );
+	s = StrReplaceAll( s, "{2}", c );
+	return s;
+}
+
+function StlCombatDenied()
+{
+	StlNotify( GetLocStringByKeyExt( "menu_cannot_perform_action_combat" ) );
+}
+
 // localized skill name (game language), or its internal name if it has none
-function TspSkillDisplayName( skill : ESkill ) : string
+function StlSkillDisplayName( skill : ESkill ) : string
 {
 	var s : string;
 
@@ -460,22 +491,23 @@ function TspSkillDisplayName( skill : ESkill ) : string
 	return s;
 }
 
-function TspNotify( msg : string )
+function StlNotify( msg : string )
 {
 	theGame.GetGuiManager().ShowNotification( msg, 6000 );
 }
 
-function TspReportText( report : STspLoadReport ) : string
+function StlReportText( report : SStlLoadReport ) : string
 {
 	var msg : string;
 	var i : int;
 
 	if ( report.missingLevels > 0 )
 	{
-		msg += "<br>" + IntToString( report.missingLevels ) + " skill level(s) could not be bought:";
+		msg += "<br>" + StlLocF( "stl_levels_not_bought", "{0} skill level(s) could not be bought:",
+			IntToString( report.missingLevels ) );
 		for ( i = 0; i < report.failedSkills.Size() && i < 6; i += 1 )
 		{
-			msg += "<br>- " + TspSkillDisplayName( report.failedSkills[ i ] );
+			msg += "<br>- " + StlSkillDisplayName( report.failedSkills[ i ] );
 		}
 		if ( report.failedSkills.Size() > 6 )
 		{
@@ -484,141 +516,146 @@ function TspReportText( report : STspLoadReport ) : string
 	}
 	if ( report.mutationFailed )
 	{
-		msg += "<br>Mutation could not be equipped";
+		msg += "<br>" + StlLoc( "stl_mutation_failed", "Mutation could not be equipped" );
 	}
-	msg += "<br>Slotted skills: " + IntToString( report.savedSlots - report.missingSlots )
-		+ " / " + IntToString( report.savedSlots );
+	msg += "<br>" + StlLocF( "stl_slots_restored", "Slotted skills: {0} / {1}",
+		IntToString( report.savedSlots - report.missingSlots ), IntToString( report.savedSlots ) );
 	if ( report.missingMutagens > 0 )
 	{
-		msg += "<br>" + IntToString( report.missingMutagens ) + " mutagen(s) missing";
+		msg += "<br>" + StlLocF( "stl_mutagens_missing", "{0} mutagen(s) missing",
+			IntToString( report.missingMutagens ) );
 	}
-	msg += "<br>Free skill points: " + IntToString( report.pointsLeft );
+	msg += "<br>" + StlLocF( "stl_free_points", "Free skill points: {0}", IntToString( report.pointsLeft ) );
 	return msg;
 }
 
-function TspValidIndex( n : int ) : bool
+// "Slotted skills: N" + "Mutagens: N" lines of a preset
+function StlPresetSummary( p : CStlPreset ) : string
 {
-	if ( n < 1 || n > TspPresetCount() )
+	return "<br>" + StlLocF( "stl_slots_count", "Slotted skills: {0}", IntToString( p.slotIds.Size() ) )
+		+ "<br>" + StlLocF( "stl_mutagens_count", "Mutagens: {0}", IntToString( p.mutagenSlots.Size() ) );
+}
+
+function StlValidIndex( n : int ) : bool
+{
+	if ( n < 1 || n > StlPresetCount() )
 	{
-		TspNotify( "Preset number must be 1.." + IntToString( TspPresetCount() ) );
+		StlNotify( StlLocF( "stl_bad_index", "Preset number must be 1..{0}", IntToString( StlPresetCount() ) ) );
 		return false;
 	}
 	return true;
 }
 
-function TspLoadAndNotify( idx : int )
+function StlLoadAndNotify( idx : int )
 {
 	var w : W3PlayerWitcher;
-	var report : STspLoadReport;
+	var report : SStlLoadReport;
 
 	w = GetWitcherPlayer();
 	if ( w.IsInCombat() )
 	{
-		TspNotify( GetLocStringByKeyExt( "menu_cannot_perform_action_combat" ) );
+		StlCombatDenied();
 		return;
 	}
-	if ( !w.TspLoad( idx, report ) )
+	if ( !w.StlLoad( idx, report ) )
 	{
-		TspNotify( w.TspGetData().DisplayName( idx ) + " is empty" );
+		StlNotify( StlLocF( "stl_empty", "{0} is empty", w.StlGetData().DisplayName( idx ) ) );
 		return;
 	}
-	TspRefreshCharacterMenu();
-	TspNotify( w.TspGetData().DisplayName( idx ) + " loaded" + TspReportText( report ) );
+	StlRefreshCharacterMenu();
+	StlNotify( StlLocF( "stl_loaded", "{0} loaded", w.StlGetData().DisplayName( idx ) ) + StlReportText( report ) );
 }
 
 // ---- debug console ----
 
-exec function tsp_save( n : int )
+exec function stl_save( n : int )
 {
 	var w : W3PlayerWitcher;
-	var p : CTspPreset;
+	var p : CStlPreset;
 
 	w = GetWitcherPlayer();
-	if ( !TspValidIndex( n ) )
+	if ( !StlValidIndex( n ) )
 	{
 		return;
 	}
 	if ( w.IsInCombat() )
 	{
-		TspNotify( GetLocStringByKeyExt( "menu_cannot_perform_action_combat" ) );
+		StlCombatDenied();
 		return;
 	}
-	if ( w.TspSave( n - 1 ) )
+	if ( w.StlSave( n - 1 ) )
 	{
-		p = w.TspGetData().Get( n - 1 );
-		TspNotify( w.TspGetData().DisplayName( n - 1 ) + " saved ("
-			+ IntToString( p.treeSkills.Size() ) + " skills, "
-			+ IntToString( w.TspPresetCost( p ) ) + " points)"
-			+ "<br>Slotted skills: " + IntToString( p.slotIds.Size() )
-			+ "<br>Mutagens: " + IntToString( p.mutagenSlots.Size() ) );
+		p = w.StlGetData().Get( n - 1 );
+		StlNotify( StlLocF( "stl_saved", "{0} saved ({1} skills, {2} points)", w.StlGetData().DisplayName( n - 1 ),
+			IntToString( p.treeSkills.Size() ), IntToString( w.StlPresetCost( p ) ) )
+			+ StlPresetSummary( p ) );
 	}
 }
 
-exec function tsp_load( n : int )
+exec function stl_load( n : int )
 {
-	if ( TspValidIndex( n ) )
+	if ( StlValidIndex( n ) )
 	{
-		TspLoadAndNotify( n - 1 );
+		StlLoadAndNotify( n - 1 );
 	}
 }
 
-// refunds all tree points (like a Potion of Clearance, none used); tsp_undo restores
-exec function tsp_reset()
+// refunds all tree points (like a Potion of Clearance, none used); stl_undo restores
+exec function stl_reset()
 {
 	var w : W3PlayerWitcher;
 
 	w = GetWitcherPlayer();
-	if ( !w.TspResetTree() )
+	if ( !w.StlResetTree() )
 	{
-		TspNotify( GetLocStringByKeyExt( "menu_cannot_perform_action_combat" ) );
+		StlCombatDenied();
 		return;
 	}
-	TspRefreshCharacterMenu();
-	TspNotify( "Skill tree reset<br>Free skill points: "
-		+ IntToString( w.levelManager.GetPointsFree( ESkillPoint ) ) );
+	StlRefreshCharacterMenu();
+	StlNotify( StlLoc( "stl_reset_done", "Skill tree reset" ) + "<br>"
+		+ StlLocF( "stl_free_points", "Free skill points: {0}", IntToString( w.levelManager.GetPointsFree( ESkillPoint ) ) ) );
 }
 
-// reloads the build that was active before the last tsp_load / tsp_reset
-exec function tsp_undo()
+// reloads the build that was active before the last stl_load / stl_reset
+exec function stl_undo()
 {
-	TspLoadAndNotify( TspUndoIndex() );
+	StlLoadAndNotify( StlUndoIndex() );
 }
 
-exec function tsp_name( n : int, newName : string )
+exec function stl_name( n : int, newName : string )
 {
 	var w : W3PlayerWitcher;
-	var p : CTspPreset;
+	var p : CStlPreset;
 
 	w = GetWitcherPlayer();
-	if ( TspValidIndex( n ) )
+	if ( StlValidIndex( n ) )
 	{
-		p = w.TspGetData().Get( n - 1 );
+		p = w.StlGetData().Get( n - 1 );
 		p.label = StrLeft( newName, 24 );
-		TspNotify( w.TspGetData().DisplayName( n - 1 ) );
+		StlNotify( w.StlGetData().DisplayName( n - 1 ) );
 	}
 }
 
-exec function tsp_info( n : int )
+exec function stl_info( n : int )
 {
 	var w : W3PlayerWitcher;
-	var p : CTspPreset;
+	var p : CStlPreset;
 	var available : int;
 
 	w = GetWitcherPlayer();
-	if ( !TspValidIndex( n ) )
+	if ( !StlValidIndex( n ) )
 	{
 		return;
 	}
-	p = w.TspGetData().Get( n - 1 );
+	p = w.StlGetData().Get( n - 1 );
 	if ( !p.used )
 	{
-		TspNotify( w.TspGetData().DisplayName( n - 1 ) + " is empty" );
+		StlNotify( StlLocF( "stl_empty", "{0} is empty", w.StlGetData().DisplayName( n - 1 ) ) );
 		return;
 	}
-	available = w.TspTreePointsAvailable();
-	TspNotify( w.TspGetData().DisplayName( n - 1 )
-		+ "<br>Tree skills: " + IntToString( p.treeSkills.Size() )
-		+ "<br>Cost: " + IntToString( w.TspPresetCost( p ) ) + " / " + IntToString( available ) + " points"
-		+ "<br>Slotted skills: " + IntToString( p.slotIds.Size() )
-		+ "<br>Mutagens: " + IntToString( p.mutagenSlots.Size() ) );
+	available = w.StlTreePointsAvailable();
+	StlNotify( w.StlGetData().DisplayName( n - 1 )
+		+ "<br>" + StlLocF( "stl_tree_skills", "Tree skills: {0}", IntToString( p.treeSkills.Size() ) )
+		+ "<br>" + StlLocF( "stl_cost", "Cost: {0} / {1} points", IntToString( w.StlPresetCost( p ) ), IntToString( available ) )
+		+ StlPresetSummary( p ) );
 }
