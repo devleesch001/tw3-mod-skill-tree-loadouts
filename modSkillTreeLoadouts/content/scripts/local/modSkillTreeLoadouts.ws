@@ -557,6 +557,87 @@ var stlPopup : CStlConfirmPopup;
 		StlLoc( "stl_confirm_undo_text", "Go back to the build you had before the last preset load or reset." ) );
 }
 
+// ---- renaming a preset (right click in the bar) ----
+
+// true while a preset name is being typed in the skills screen; blocks the menu hotkeys
+@addField(W3PlayerWitcher)
+var stlRenaming : bool;
+
+function StlNameMax() : int
+{
+	return 20;
+}
+
+// without the leading and trailing spaces
+function StlTrim( text : string ) : string
+{
+	var s : string;
+
+	s = text;
+	while ( StrLen( s ) > 0 && StrLeft( s, 1 ) == " " )
+	{
+		s = StrRight( s, StrLen( s ) - 1 );
+	}
+	while ( StrLen( s ) > 0 && StrRight( s, 1 ) == " " )
+	{
+		s = StrLeft( s, StrLen( s ) - 1 );
+	}
+	return s;
+}
+
+@addMethod(CR4CharacterDupeMenu) function StlSetRenaming( active : bool )
+{
+	var w : W3PlayerWitcher;
+
+	w = GetWitcherPlayer();
+	w.stlRenaming = active;
+	SetMenuNavigationEnabled( !active );
+}
+
+@addMethod(CR4CharacterDupeMenu) event OnStlRenaming( active : bool )
+{
+	StlSetRenaming( active );
+}
+
+// an empty name goes back to "Preset N"
+@addMethod(CR4CharacterDupeMenu) event OnStlRename( idx : int, newName : string )
+{
+	var p : CStlPreset;
+
+	p = GetWitcherPlayer().StlGetData().Get( idx );
+	if ( p )
+	{
+		p.label = StrLeft( StlTrim( newName ), StlNameMax() );
+		OnPlaySoundEvent( "gui_character_add_skill" );
+	}
+	StlSendPresets();
+}
+
+@wrapMethod(CR4CharacterDupeMenu) function OnClosingMenu()
+{
+	var w : W3PlayerWitcher;
+
+	w = GetWitcherPlayer();
+	if ( w && w.stlRenaming )
+	{
+		StlSetRenaming( false );
+	}
+	return wrappedMethod();
+}
+
+// no inventory / map / ... hotkeys while a name is typed
+@wrapMethod(CR4CommonMenu) function OnHotkeyTriggered( keyCode : EInputKey )
+{
+	var w : W3PlayerWitcher;
+
+	w = GetWitcherPlayer();
+	if ( w && w.stlRenaming )
+	{
+		return false;
+	}
+	return wrappedMethod( keyCode );
+}
+
 // the game's yes/no popup (same as buying a skill); StlDoAction runs on "yes"
 @addMethod(CR4CharacterDupeMenu) function StlConfirm( action : int, idx : int, title : string, text : string )
 {
@@ -844,7 +925,7 @@ exec function stl_name( n : int, newName : string )
 	if ( StlValidIndex( n ) )
 	{
 		p = w.StlGetData().Get( n - 1 );
-		p.label = StrLeft( newName, 24 );
+		p.label = StrLeft( StlTrim( newName ), StlNameMax() );
 		StlNotify( w.StlGetData().DisplayName( n - 1 ) );
 	}
 }

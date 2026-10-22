@@ -42,8 +42,10 @@ package red.game.witcher3.menus.character_menu
    import scaleform.clik.events.InputEvent;
    import scaleform.clik.events.ListEvent;
    import scaleform.clik.interfaces.IListItemRenderer;
+   import scaleform.clik.managers.InputDelegate;
    import scaleform.clik.ui.InputDetails;
    import scaleform.gfx.Extensions;
+   import scaleform.gfx.MouseEventEx;
    
    [SWF(width="1920", height="1080", backgroundColor="#000000", frameRate="40")]
    public class MenuCharacterDupe extends CoreMenu
@@ -141,6 +143,13 @@ package red.game.witcher3.menus.character_menu
       private var _stlHoldStart:int = 0;
 
       private var _stlHoldSaved:Boolean = false;
+
+      private const STL_NAME_MAX:int = 20;
+
+      // preset being renamed (-1 = none) and the text typed so far
+      private var _stlRenameIdx:int = -1;
+
+      private var _stlRenameText:String = "";
 
       public function MenuCharacterDupe()
       {
@@ -1083,6 +1092,10 @@ package red.game.witcher3.menus.character_menu
             lit = Boolean(data) && Boolean(data.enabled);
          }
          border = active ? 0xD9B45A : (hover ? 0xBFA36A : 0x6B5F48);
+         if(idx == this._stlRenameIdx)
+         {
+            border = 0xFFFFFF;
+         }
          if(isPreset && this._stlHoldIdx == idx && !this._stlHoldSaved)
          {
             progress = Math.min(1,(getTimer() - this._stlHoldStart) / this.STL_HOLD_MS);
@@ -1101,6 +1114,11 @@ package red.game.witcher3.menus.character_menu
          }
          label.text = data ? String(data.name) : "";
          label.textColor = lit ? 0xFFFFFF : 0x8C8C8C;
+         if(idx == this._stlRenameIdx)
+         {
+            label.text = this._stlRenameText + "_";
+            label.textColor = 0xFFFFFF;
+         }
       }
 
       private function stlIndexOf(target:Object) : int
@@ -1122,7 +1140,26 @@ package red.game.witcher3.menus.character_menu
 
       private function stlOnMouseDown(event:MouseEvent) : void
       {
-         this._stlHoldIdx = this.stlIndexOf(event.currentTarget);
+         var idx:int = this.stlIndexOf(event.currentTarget);
+         var eventEx:MouseEventEx = event as MouseEventEx;
+         if(this._stlRenameIdx >= 0)
+         {
+            // a click on another button ends the rename (keeps the name); on the same one, nothing
+            if(idx != this._stlRenameIdx)
+            {
+               this.stlEndRename(true);
+            }
+            return;
+         }
+         if(Boolean(eventEx) && eventEx.buttonIdx == MouseEventEx.RIGHT_BUTTON)
+         {
+            if(idx < this.STL_COUNT)
+            {
+               this.stlStartRename(idx);
+            }
+            return;
+         }
+         this._stlHoldIdx = idx;
          this._stlHoldStart = getTimer();
          this._stlHoldSaved = false;
          stage.addEventListener(MouseEvent.MOUSE_UP,this.stlOnMouseUp,false,0,true);
@@ -1171,6 +1208,114 @@ package red.game.witcher3.menus.character_menu
          }
       }
       
+      // Right click on a preset: type its name in the button. The game only passes key codes to
+      // the movie, so the text is built here from them (letters, digits, space, '-').
+      // Enter or a click elsewhere keeps it (OnStlRename), Escape cancels. The script blocks the
+      // menu hotkeys and navigation while OnStlRenaming(true) is on.
+      private function stlStartRename(idx:int) : void
+      {
+         var data:Object = idx < this._stlData.length ? this._stlData[idx] : null;
+         this._stlRenameIdx = idx;
+         this._stlRenameText = Boolean(data) && Boolean(data.used) ? String(data.name).substr(0,this.STL_NAME_MAX) : "";
+         InputDelegate.getInstance().addEventListener(InputEvent.INPUT,this.stlOnRenameInput,false,5000,true);
+         stage.addEventListener(MouseEvent.MOUSE_DOWN,this.stlOnRenameStageDown,false,0,true);
+         dispatchEvent(new GameEvent(GameEvent.CALL,"OnStlRenaming",[true]));
+         this.stlRedraw(idx);
+      }
+
+      private function stlEndRename(keep:Boolean) : void
+      {
+         var idx:int = this._stlRenameIdx;
+         if(idx < 0)
+         {
+            return;
+         }
+         this._stlRenameIdx = -1;
+         InputDelegate.getInstance().removeEventListener(InputEvent.INPUT,this.stlOnRenameInput);
+         stage.removeEventListener(MouseEvent.MOUSE_DOWN,this.stlOnRenameStageDown);
+         if(keep)
+         {
+            dispatchEvent(new GameEvent(GameEvent.CALL,"OnStlRename",[idx,this._stlRenameText]));
+         }
+         dispatchEvent(new GameEvent(GameEvent.CALL,"OnStlRenaming",[false]));
+         this.stlRedraw(idx);
+      }
+
+      private function stlOnRenameStageDown(event:MouseEvent) : void
+      {
+         var btn:Sprite = this._stlButtons[this._stlRenameIdx] as Sprite;
+         if(Boolean(btn) && btn.contains(event.target as DisplayObject))
+         {
+            return;
+         }
+         this.stlEndRename(true);
+      }
+
+      // swallows every input while typing so the menu does not react to it
+      private function stlOnRenameInput(event:InputEvent) : void
+      {
+         var details:InputDetails = event.details;
+         var code:int = int(details.code);
+         var ch:String = null;
+         event.handled = true;
+         event.stopImmediatePropagation();
+         if(details.value != InputValue.KEY_DOWN && details.value != InputValue.KEY_HOLD)
+         {
+            return;
+         }
+         if(details.fromJoystick)
+         {
+            if(details.navEquivalent == NavigationCode.GAMEPAD_A)
+            {
+               this.stlEndRename(true);
+            }
+            else if(details.navEquivalent == NavigationCode.GAMEPAD_B)
+            {
+               this.stlEndRename(false);
+            }
+            return;
+         }
+         if(code == KeyCode.ENTER)
+         {
+            this.stlEndRename(true);
+            return;
+         }
+         if(code == KeyCode.ESCAPE)
+         {
+            this.stlEndRename(false);
+            return;
+         }
+         if(code == KeyCode.BACKSPACE)
+         {
+            this._stlRenameText = this._stlRenameText.substr(0,Math.max(0,this._stlRenameText.length - 1));
+         }
+         else if(code >= 65 && code <= 90)
+         {
+            ch = String.fromCharCode(details.shiftKey ? code : code + 32);
+         }
+         else if(code >= 48 && code <= 57)
+         {
+            ch = String.fromCharCode(code);
+         }
+         else if(code >= 96 && code <= 105)
+         {
+            ch = String.fromCharCode(code - 48);
+         }
+         else if(code == KeyCode.SPACE)
+         {
+            ch = " ";
+         }
+         else if(code == 189 || code == 109)
+         {
+            ch = "-";
+         }
+         if(ch != null && this._stlRenameText.length < this.STL_NAME_MAX)
+         {
+            this._stlRenameText += ch;
+         }
+         this.stlRedraw(this._stlRenameIdx);
+      }
+
       protected function callNotifyNotEnoughtPoints() : void
       {
          dispatchEvent(new GameEvent(GameEvent.CALL,"OnNotEnoughtPoints"));
