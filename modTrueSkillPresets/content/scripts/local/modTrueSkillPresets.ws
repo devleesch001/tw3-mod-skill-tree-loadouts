@@ -67,6 +67,7 @@ class CTspData
 struct STspLoadReport
 {
 	var missingLevels	: int;
+	var failedSkills	: array< ESkill >;
 	var missingSlots	: int;
 	var savedSlots		: int;
 	var missingMutagens	: int;
@@ -153,6 +154,7 @@ saved var tspData : CTspData;
 @addMethod(W3PlayerWitcher) function TspLoad( idx : int, out report : STspLoadReport ) : bool
 {
 	var p : CTspPreset;
+	var failed : array< ESkill >;
 
 	p = TspGetData().Get( idx );
 	if ( !p || !p.used || IsInCombat() )
@@ -169,7 +171,8 @@ saved var tspData : CTspData;
 	// unequips skills + mutagens and refunds all tree points; mutation points are kept
 	ResetCharacterDev();
 
-	report.missingLevels = TspRebuyTree( p );
+	report.missingLevels = TspRebuyTree( p, failed );
+	report.failedSkills = failed;
 
 	// mutation before slots: it decides whether the 4 extra slots can be used
 	if ( p.mutation != GetEquippedMutationType() )
@@ -184,18 +187,39 @@ saved var tspData : CTspData;
 	return true;
 }
 
+// Same purchase rule as the skills screen in use. CanLearnSkill checks dependencies (and the
+// tier threshold for skills that are neither reworked nor unchanged-legacy) and free points.
+// The Remastered screen ignores requiredPointsSpent for every skill (it sends
+// 'hasRequiredPointsSpent' = true), but the legacy screen locks by it.
+@addMethod(W3PlayerWitcher) function TspCanBuy( skill : ESkill, legacyTree : bool ) : bool
+{
+	if ( !CanLearnSkill( skill ) )
+	{
+		return false;
+	}
+	return !legacyTree || HasSpentEnoughPoints( skill );
+}
+
+function TspUsingLegacyTree() : bool
+{
+	return (bool)theGame.GetInGameConfigWrapper().GetVarValue( 'RemasterCombat', 'UseLegacySkillTree' );
+}
+
 // Buys the preset's tree back, one level at a time. Skills are tried in ascending order of
 // the points their tier requires, and passes repeat until nothing more can be bought, so
 // tier thresholds and skill dependencies (Remastered tree) are met in any order.
-// Returns the number of levels that could not be bought.
-@addMethod(W3PlayerWitcher) function TspRebuyTree( p : CTspPreset ) : int
+// Returns the number of levels that could not be bought; 'failed' lists those skills.
+@addMethod(W3PlayerWitcher) function TspRebuyTree( p : CTspPreset, out failed : array< ESkill > ) : int
 {
+	var legacyTree : bool;
 	var order : array< int >;
 	var tiers : array< int >;
 	var sk : SSkill;
 	var skill : ESkill;
 	var target, before, missing, i, j, tmp : int;
 	var progress : bool;
+
+	legacyTree = TspUsingLegacyTree();
 
 	// sort preset entries by required points (insertion sort on indexes)
 	for ( i = 0; i < p.treeSkills.Size(); i += 1 )
@@ -224,7 +248,7 @@ saved var tspData : CTspData;
 		{
 			skill = p.treeSkills[ order[ i ] ];
 			target = Min( p.treeLevels[ order[ i ] ], GetSkillMaxLevel( skill ) );
-			while ( TspBoughtLevel( skill ) < target && CanLearnSkill( skill ) && HasSpentEnoughPoints( skill ) )
+			while ( TspBoughtLevel( skill ) < target && TspCanBuy( skill, legacyTree ) )
 			{
 				before = TspBoughtLevel( skill );
 				AddSkill( skill );
@@ -241,7 +265,11 @@ saved var tspData : CTspData;
 	{
 		skill = p.treeSkills[ i ];
 		target = Min( p.treeLevels[ i ], GetSkillMaxLevel( skill ) );
-		missing += Max( 0, target - TspBoughtLevel( skill ) );
+		if ( TspBoughtLevel( skill ) < target )
+		{
+			missing += target - TspBoughtLevel( skill );
+			failed.PushBack( skill );
+		}
 	}
 	return missing;
 }
@@ -419,6 +447,19 @@ function TspRefreshCharacterMenu()
 
 // ---- notifications ----
 
+// localized skill name (game language), or its internal name if it has none
+function TspSkillDisplayName( skill : ESkill ) : string
+{
+	var s : string;
+
+	s = GetLocStringByKeyExt( thePlayer.GetSkillLocalisationKeyName( skill ) );
+	if ( s == "" )
+	{
+		s = NameToString( SkillEnumToName( skill ) );
+	}
+	return s;
+}
+
 function TspNotify( msg : string )
 {
 	theGame.GetGuiManager().ShowNotification( msg, 6000 );
@@ -427,10 +468,19 @@ function TspNotify( msg : string )
 function TspReportText( report : STspLoadReport ) : string
 {
 	var msg : string;
+	var i : int;
 
 	if ( report.missingLevels > 0 )
 	{
-		msg += "<br>" + IntToString( report.missingLevels ) + " skill level(s) could not be bought";
+		msg += "<br>" + IntToString( report.missingLevels ) + " skill level(s) could not be bought:";
+		for ( i = 0; i < report.failedSkills.Size() && i < 6; i += 1 )
+		{
+			msg += "<br>- " + TspSkillDisplayName( report.failedSkills[ i ] );
+		}
+		if ( report.failedSkills.Size() > 6 )
+		{
+			msg += "<br>- ...";
+		}
 	}
 	if ( report.mutationFailed )
 	{
