@@ -418,6 +418,14 @@ function StlUsingLegacyTree() : bool
 	UpdateMasterMutation();
 }
 
+// ---- skills screen UI (blob0.bundle, built from ui\scripts by tools\build-ui.ps1) ----
+
+// sent by the modded panel_character_dupe when it opens; for now only proves the bundle loads
+@addMethod(CR4CharacterDupeMenu) event OnStlUiReady()
+{
+	StlNotify( "Skill Tree Loadouts: UI loaded" );
+}
+
 // redraws the skills screen if it is the menu currently shown
 function StlRefreshCharacterMenu()
 {

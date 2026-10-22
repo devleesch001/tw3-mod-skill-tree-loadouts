@@ -3,3 +3,7 @@ utils/
 
 # Extracted game files and build intermediates
 work/
+
+# UI bundle, built by tools/build-ui.ps1
+modSkillTreeLoadouts/content/blob0.bundle
+modSkillTreeLoadouts/content/metadata.store
