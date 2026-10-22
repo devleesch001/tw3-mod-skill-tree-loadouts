@@ -45,8 +45,9 @@ function New-StlPackage($Cfg) {
     foreach ($f in 'blob0.bundle', 'metadata.store') {
         if (-not (Test-Path (Join-Path $keep $f))) { throw "package: no built UI bundle in work\build\ui, run '.\cli.ps1 build ui -Force' (game closed) once" }
     }
-    # the player README ships inside the mod folder, as other mods do
+    # the player README and the license ship inside the mod folder, as other mods do
     Copy-Item (Join-Path $Cfg.Paths.Src 'release\README.md') (Join-Path $Cfg.Paths.ModDist 'README.md') -Force
+    Copy-Item (Join-Path $Cfg.Paths.Root 'LICENSE') (Join-Path $Cfg.Paths.ModDist 'LICENSE') -Force
     New-Item -ItemType Directory -Force $Cfg.Paths.Release | Out-Null
     $zip = Join-Path $Cfg.Paths.Release ("{0}-{1}.zip" -f ($Cfg.Mod.DisplayName -replace '\s', ''), $Cfg.Mod.Version)
     Remove-Item $zip -ErrorAction SilentlyContinue

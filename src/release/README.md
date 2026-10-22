@@ -81,6 +81,15 @@ Brazilian Portuguese, Polish, Czech, Hungarian, Russian, Ukrainian, Turkish, Jap
 Korean, Traditional and Simplified Chinese, Arabic. English and French are proofread; the
 other translations are first versions, corrections are welcome.
 
+## License
+
+The mod's code is released under the **GNU GPL v3.0** (see `LICENSE`, next to this file).
+Source code: https://github.com/devleesch001/tw3-mod-skill-tree-loadouts
+
+The game and its files, including the original skills screen this mod modifies, belong to
+CD PROJEKT RED and are not covered by this license. The Witcher® is a trademark of
+CD PROJEKT S.A.
+
 ## Uninstallation
 
 Delete `Mods\modSkillTreeLoadouts`. Your loadouts are stored in your saves; without the mod
