@@ -11,7 +11,7 @@
     Strings = @{
         # string ids are 21<IdSpace>NNN (4 digits: 211nnnnNNN, 5 digits: 21nnnnnNNN), as in
         # src/strings/*.csv. Use the Nexus mod id once the mod page exists.
-        IdSpace   = 7351
+        IdSpace   = 14755                        # Nexus mod id
         Languages = @('en', 'fr')                # src/strings/<lang>.csv -> <lang>.w3strings
     }
 

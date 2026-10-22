@@ -12,9 +12,9 @@ Fields to fill when creating the mod page, then the description to paste (BBCode
 | Requirements | none (game version 5.x Remastered) |
 | File | `release/SkillTreeLoadouts-1.0.0.zip` (built by `.\cli.ps1 package`) |
 
-Before the final upload: put the Nexus mod id in `stl.config.psd1` (`Strings.IdSpace`) and
-run `.\cli.ps1 build` + `.\cli.ps1 package` again, so the mod's text ids cannot collide with
-another mod's.
+Nexus mod id: **14755** (page https://www.nexusmods.com/witcher3/mods/14755). It is also the
+text id space (`Strings.IdSpace` in `stl.config.psd1`), so the mod's string ids
+(2114755000-2114755999) cannot collide with another mod's.
 
 Images to add: the skills screen with the bar, the confirmation popup, a renamed loadout,
 the "loaded" notification.

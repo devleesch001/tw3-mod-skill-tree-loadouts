@@ -45,7 +45,18 @@ function New-StlPackage($Cfg) {
     New-Item -ItemType Directory -Force $Cfg.Paths.Release | Out-Null
     $zip = Join-Path $Cfg.Paths.Release ("{0}-{1}.zip" -f ($Cfg.Mod.DisplayName -replace '\s', ''), $Cfg.Mod.Version)
     Remove-Item $zip -ErrorAction SilentlyContinue
-    Compress-Archive -Path (Join-Path $Cfg.Paths.Dist '*') -DestinationPath $zip
+    # entries use '/' as the zip format requires (Compress-Archive in PowerShell 5.1 writes '\',
+    # which some extractors turn into flat file names)
+    Add-Type -AssemblyName System.IO.Compression, System.IO.Compression.FileSystem
+    $archive = [IO.Compression.ZipFile]::Open($zip, [IO.Compression.ZipArchiveMode]::Create)
+    try {
+        foreach ($file in Get-ChildItem $Cfg.Paths.Dist -Recurse -File) {
+            $entry = $file.FullName.Substring($Cfg.Paths.Dist.Length + 1) -replace '\\', '/'
+            [void][IO.Compression.ZipFileExtensions]::CreateEntryFromFile($archive, $file.FullName, $entry, [IO.Compression.CompressionLevel]::Optimal)
+        }
+    } finally {
+        $archive.Dispose()
+    }
     Write-Host "package: $zip ($([math]::Round((Get-Item $zip).Length / 1MB, 1)) MB)"
 }
 
