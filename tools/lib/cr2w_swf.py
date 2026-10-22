@@ -1,6 +1,7 @@
 ﻿"""Inspect / patch the GFx movie inside a Witcher 3 .redswf (CR2W file holding a CSwfResource).
 
 Used by stl.ps1 (build ui); runs only at build time, never shipped with the mod.
+Why it exists, what it does and how it is checked: docs/cr2w_swf.md
 
     python -I tools/lib/cr2w_swf.py info    <file.redswf>
     python -I tools/lib/cr2w_swf.py verify  <file.redswf>
