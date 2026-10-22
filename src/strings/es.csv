@@ -1,0 +1,32 @@
+;meta[language=es]
+; id      |key(hex)|key(str)| text
+;
+; Skill Tree Loadouts - Español (España). UTF-8 sin BOM. Generado con .\cli.ps1 build strings
+; $0$ $1$ $2$ los sustituye el script.
+;
+2117351000|        |stl_preset_name|Plantilla $0$
+2117351001|        |stl_previous_build|Build anterior
+2117351002|        |stl_levels_not_bought|No se han podido comprar $0$ nivel(es) de habilidad:
+2117351003|        |stl_mutation_failed|No se ha podido equipar la mutación
+2117351004|        |stl_slots_restored|Habilidades equipadas: $0$ / $1$
+2117351005|        |stl_mutagens_missing|Mutágenos que faltan: $0$
+2117351006|        |stl_free_points|Puntos de habilidad libres: $0$
+2117351007|        |stl_slots_count|Habilidades equipadas: $0$
+2117351008|        |stl_mutagens_count|Mutágenos: $0$
+2117351009|        |stl_bad_index|El número de plantilla debe estar entre 1 y $0$
+2117351010|        |stl_empty|$0$ está vacía
+2117351011|        |stl_loaded|$0$ cargada
+2117351012|        |stl_saved|$0$ guardada ($1$ habilidades, $2$ puntos)
+2117351013|        |stl_reset_done|Árbol de habilidades reiniciado
+2117351014|        |stl_tree_skills|Habilidades del árbol: $0$
+2117351015|        |stl_cost|Coste: $0$ / $1$ puntos
+2117351016|        |stl_hold_to_save|Mantén pulsado el botón para guardar
+2117351017|        |stl_btn_reset|Reiniciar
+2117351018|        |stl_btn_undo|Deshacer
+2117351019|        |stl_confirm_load_title|¿Cargar $0$?
+2117351020|        |stl_confirm_load_text|Tus puntos de habilidad se reembolsarán y se volverán a gastar para reconstruir el árbol, las ranuras, los mutágenos y la mutación de esta plantilla.
+2117351021|        |stl_confirm_reset_title|¿Reiniciar el árbol de habilidades?
+2117351022|        |stl_confirm_reset_text|Se reembolsarán todos los puntos gastados en el árbol. Usa Deshacer para recuperar este build.
+2117351023|        |stl_confirm_undo_title|¿Deshacer el último cambio?
+2117351024|        |stl_confirm_undo_text|Volver al build que tenías antes de la última carga o reinicio.
+2117351025|        |stl_nothing_to_undo|Nada que deshacer

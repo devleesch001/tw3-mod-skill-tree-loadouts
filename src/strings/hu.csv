@@ -1,0 +1,32 @@
+;meta[language=hu]
+; id      |key(hex)|key(str)| text
+;
+; Skill Tree Loadouts - Magyar. UTF-8, BOM nélkül. Készítés: .\cli.ps1 build strings
+; A $0$ $1$ $2$ helyére a szkript ír értéket.
+;
+2117351000|        |stl_preset_name|Készlet $0$
+2117351001|        |stl_previous_build|Előző build
+2117351002|        |stl_levels_not_bought|Nem sikerült megvenni képességszintet: $0$
+2117351003|        |stl_mutation_failed|A mutációt nem sikerült felszerelni
+2117351004|        |stl_slots_restored|Felszerelt képességek: $0$ / $1$
+2117351005|        |stl_mutagens_missing|Hiányzó mutagének: $0$
+2117351006|        |stl_free_points|Szabad képességpontok: $0$
+2117351007|        |stl_slots_count|Felszerelt képességek: $0$
+2117351008|        |stl_mutagens_count|Mutagének: $0$
+2117351009|        |stl_bad_index|A készlet száma 1 és $0$ között lehet
+2117351010|        |stl_empty|$0$ üres
+2117351011|        |stl_loaded|$0$ betöltve
+2117351012|        |stl_saved|$0$ mentve ($1$ képesség, $2$ pont)
+2117351013|        |stl_reset_done|Képességfa visszaállítva
+2117351014|        |stl_tree_skills|Képességek a fában: $0$
+2117351015|        |stl_cost|Költség: $0$ / $1$ pont
+2117351016|        |stl_hold_to_save|Tartsd lenyomva a gombot a mentéshez
+2117351017|        |stl_btn_reset|Visszaállítás
+2117351018|        |stl_btn_undo|Visszavonás
+2117351019|        |stl_confirm_load_title|Betöltöd ezt: $0$?
+2117351020|        |stl_confirm_load_text|A képességpontjaid visszajárnak, majd újra elköltöd őket a készlet képességfájának, foglalatainak, mutagénjeinek és mutációjának visszaállításához.
+2117351021|        |stl_confirm_reset_title|Visszaállítod a képességfát?
+2117351022|        |stl_confirm_reset_text|A fába költött összes pont visszajár. A Visszavonás gombbal visszakapod ezt a buildet.
+2117351023|        |stl_confirm_undo_title|Visszavonod az utolsó változtatást?
+2117351024|        |stl_confirm_undo_text|Visszatérés ahhoz a buildhez, amely az utolsó betöltés vagy visszaállítás előtt volt.
+2117351025|        |stl_nothing_to_undo|Nincs mit visszavonni

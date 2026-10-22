@@ -126,6 +126,10 @@ package red.game.witcher3.menus.character_menu
 
       private const STL_GROUP_GAP:Number = 20;
 
+      private const STL_FONT_SIZE:int = 20;
+
+      private const STL_FONT_MIN:int = 12;
+
       private var _stlBar:Sprite;
 
       private var _stlButtons:Array = [];
@@ -999,7 +1003,7 @@ package red.game.witcher3.menus.character_menu
          var btn:Sprite = null;
          var label:TextField = null;
          var fmt:TextFormat = this.txfAvailablePoints.getTextFormat();
-         fmt.size = 20;
+         fmt.size = this.STL_FONT_SIZE;
          fmt.align = TextFormatAlign.CENTER;
          this._stlBar = new Sprite();
          for(i = 0; i <= this.STL_UNDO; i++)
@@ -1118,6 +1122,22 @@ package red.game.witcher3.menus.character_menu
          {
             label.text = this._stlRenameText + "_";
             label.textColor = 0xFFFFFF;
+         }
+         this.stlFitLabel(label);
+      }
+
+      // long translations or names: shrink the font until the text fits the button
+      private function stlFitLabel(label:TextField) : void
+      {
+         var fmt:TextFormat = label.getTextFormat();
+         var size:int = this.STL_FONT_SIZE;
+         fmt.size = size;
+         label.setTextFormat(fmt);
+         while(label.textWidth > label.width - 6 && size > this.STL_FONT_MIN)
+         {
+            size--;
+            fmt.size = size;
+            label.setTextFormat(fmt);
          }
       }
 

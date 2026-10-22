@@ -1,0 +1,32 @@
+;meta[language=jp]
+; id      |key(hex)|key(str)| text
+;
+; Skill Tree Loadouts - 日本語. UTF-8 (BOMなし). .\cli.ps1 build strings でビルド
+; $0$ $1$ $2$ はスクリプトが置き換えます。
+;
+2117351000|        |stl_preset_name|プリセット $0$
+2117351001|        |stl_previous_build|前のビルド
+2117351002|        |stl_levels_not_bought|購入できなかったスキルレベル：$0$
+2117351003|        |stl_mutation_failed|ミューテーションを装備できませんでした
+2117351004|        |stl_slots_restored|装備中のスキル：$0$ / $1$
+2117351005|        |stl_mutagens_missing|不足しているミュータジェン：$0$
+2117351006|        |stl_free_points|未使用のスキルポイント：$0$
+2117351007|        |stl_slots_count|装備中のスキル：$0$
+2117351008|        |stl_mutagens_count|ミュータジェン：$0$
+2117351009|        |stl_bad_index|プリセット番号は1～$0$で指定してください
+2117351010|        |stl_empty|$0$ は空です
+2117351011|        |stl_loaded|$0$ をロードしました
+2117351012|        |stl_saved|$0$ を保存しました（スキル $1$、ポイント $2$）
+2117351013|        |stl_reset_done|スキルツリーをリセットしました
+2117351014|        |stl_tree_skills|ツリーのスキル：$0$
+2117351015|        |stl_cost|コスト：$0$ / $1$ ポイント
+2117351016|        |stl_hold_to_save|ボタンを長押しして保存
+2117351017|        |stl_btn_reset|リセット
+2117351018|        |stl_btn_undo|元に戻す
+2117351019|        |stl_confirm_load_title|$0$ をロードしますか？
+2117351020|        |stl_confirm_load_text|スキルポイントが払い戻され、このプリセットのスキルツリー、スロット、ミュータジェン、ミューテーションを再構築するために再び使われます。
+2117351021|        |stl_confirm_reset_title|スキルツリーをリセットしますか？
+2117351022|        |stl_confirm_reset_text|ツリーに使ったポイントはすべて払い戻されます。「元に戻す」でこのビルドに戻せます。
+2117351023|        |stl_confirm_undo_title|最後の変更を元に戻しますか？
+2117351024|        |stl_confirm_undo_text|最後のプリセットのロードまたはリセットの前のビルドに戻ります。
+2117351025|        |stl_nothing_to_undo|元に戻す操作はありません

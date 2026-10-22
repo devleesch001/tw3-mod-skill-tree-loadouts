@@ -5,12 +5,13 @@ Fields to fill when creating the mod page, then the description to paste (BBCode
 | Field | Value |
 |---|---|
 | Name | Skill Tree Loadouts |
-| Version | 1.0.0 |
+| Version | 1.1.0 (1.0.0: English and French only) |
 | Category | Gameplay / Skills (or Utilities) |
 | Summary (short) | Save your whole skill tree, slots, mutagens and mutation as a loadout and switch builds in one click, with your own skill points only. |
 | Tags | Remastered Compatible, Skills, Gameplay, User Interface |
 | Requirements | none (game version 5.x Remastered) |
-| File | `release/SkillTreeLoadouts-1.0.0.zip` (built by `.\cli.ps1 package`) |
+| File | `release/SkillTreeLoadouts-<version>.zip` (built by `.\cli.ps1 package`) |
+| Changelog 1.1.0 | All 18 game languages; button labels shrink to fit long texts and names. |
 
 Nexus mod id: **14755** (page https://www.nexusmods.com/witcher3/mods/14755). It is also the
 text id space (`Strings.IdSpace` in `stl.config.psd1`), so the mod's string ids
@@ -37,7 +38,7 @@ Other preset mods only remember the skills in the equipped slots. Skill Tree Loa
 [*][b]Reset[/b] refunds the whole tree without a Potion of Clearance
 [*]Rename your loadouts directly in the skills screen
 [*]The game's own confirmation popup before anything changes your tree
-[*]English and French
+[*]Translated into every language of the game (English and French proofread, corrections welcome for the others)
 [*]No Script Merger needed: annotations only, no game script is replaced
 [/list]
 

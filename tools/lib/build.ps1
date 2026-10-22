@@ -45,10 +45,43 @@ function Get-StlStringBase([int]$IdSpace) {
     [long]2100000000 + [long]$IdSpace * 1000
 }
 
+# key -> sorted "$n$" markers of a strings csv
+function Get-StlStringMarkers([string]$Csv) {
+    $map = @{}
+    foreach ($line in [IO.File]::ReadAllLines($Csv, (New-Object Text.UTF8Encoding $false))) {
+        $cols = $line.Split('|')
+        if ($line -match '^\d{10}\|' -and $cols.Count -ge 4) {
+            $map[$cols[2].Trim()] = (([regex]::Matches($cols[3], '\$\d\$') | ForEach-Object Value | Sort-Object) -join ' ')
+        }
+    }
+    $map
+}
+
+# every language must have the keys of en.csv, with the same markers per key
+function Test-StlStrings($Cfg) {
+    $ref = Get-StlStringMarkers (Join-Path $Cfg.Paths.Src 'strings\en.csv')
+    $problems = @()
+    foreach ($lang in $Cfg.Strings.Languages) {
+        $csv = Join-Path $Cfg.Paths.Src "strings\$lang.csv"
+        if (-not (Test-Path $csv)) { $problems += "${lang}: src\strings\$lang.csv missing"; continue }
+        $map = Get-StlStringMarkers $csv
+        foreach ($key in $ref.Keys) {
+            if (-not $map.ContainsKey($key)) { $problems += "${lang}: missing $key" }
+            elseif ($map[$key] -ne $ref[$key]) { $problems += "${lang}: $key has markers '$($map[$key])', expected '$($ref[$key])'" }
+        }
+        foreach ($key in $map.Keys) {
+            if (-not $ref.ContainsKey($key)) { $problems += "${lang}: unknown key $key (not in en.csv)" }
+        }
+    }
+    $problems
+}
+
 # src/strings/<lang>.csv -> <lang>.w3strings (v164, the format Remastered reads).
 # Only the last 3 digits of each id in the csv matter: the id space comes from the config.
 function Build-StlStrings($Cfg, $Tc) {
     Assert-StlTool 'w3strings encoder' $Tc.W3Strings
+    $problems = @(Test-StlStrings $Cfg)
+    if ($problems.Count) { $problems | ForEach-Object { Write-Host "  $_" }; throw "strings: $($problems.Count) problem(s) in src\strings" }
     $out = Get-StlContentDir $Cfg
     $base = Get-StlStringBase $Cfg.Strings.IdSpace
     $tmp = Join-Path $Cfg.Paths.Build 'strings'
@@ -89,8 +122,8 @@ function Build-StlUi($Cfg, $Tc, [switch]$Force) {
         Write-Host 'ui: up to date'
         return
     }
-    if (Test-StlGameRunning) {
-        throw 'ui: the game is running and locks the mod bundle; quit it first'
+    if (Test-StlFileLocked $bundleOut) {
+        throw 'ui: the game is using the mod bundle (dist is linked into its Mods folder); quit it first'
     }
     Assert-StlTool 'REDkit wcc_lite' $Tc.Wcc
     Assert-StlTool 'FFDec' $Tc.FFDec

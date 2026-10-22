@@ -1,0 +1,32 @@
+;meta[language=br]
+; id      |key(hex)|key(str)| text
+;
+; Skill Tree Loadouts - Português (Brasil). UTF-8 sem BOM. Gerado com .\cli.ps1 build strings
+; $0$ $1$ $2$ são substituídos pelo script.
+;
+2117351000|        |stl_preset_name|Conjunto $0$
+2117351001|        |stl_previous_build|Build anterior
+2117351002|        |stl_levels_not_bought|Não foi possível comprar $0$ nível(is) de habilidade:
+2117351003|        |stl_mutation_failed|Não foi possível equipar a mutação
+2117351004|        |stl_slots_restored|Habilidades equipadas: $0$ / $1$
+2117351005|        |stl_mutagens_missing|Mutagênicos faltando: $0$
+2117351006|        |stl_free_points|Pontos de habilidade livres: $0$
+2117351007|        |stl_slots_count|Habilidades equipadas: $0$
+2117351008|        |stl_mutagens_count|Mutagênicos: $0$
+2117351009|        |stl_bad_index|O número do conjunto deve ser de 1 a $0$
+2117351010|        |stl_empty|$0$ está vazio
+2117351011|        |stl_loaded|$0$ carregado
+2117351012|        |stl_saved|$0$ salvo ($1$ habilidades, $2$ pontos)
+2117351013|        |stl_reset_done|Árvore de habilidades redefinida
+2117351014|        |stl_tree_skills|Habilidades da árvore: $0$
+2117351015|        |stl_cost|Custo: $0$ / $1$ pontos
+2117351016|        |stl_hold_to_save|Segure o botão para salvar
+2117351017|        |stl_btn_reset|Redefinir
+2117351018|        |stl_btn_undo|Desfazer
+2117351019|        |stl_confirm_load_title|Carregar $0$?
+2117351020|        |stl_confirm_load_text|Seus pontos de habilidade serão reembolsados e gastos novamente para reconstruir a árvore, os espaços, os mutagênicos e a mutação deste conjunto.
+2117351021|        |stl_confirm_reset_title|Redefinir a árvore de habilidades?
+2117351022|        |stl_confirm_reset_text|Todos os pontos gastos na árvore serão reembolsados. Use Desfazer para recuperar este build.
+2117351023|        |stl_confirm_undo_title|Desfazer a última alteração?
+2117351024|        |stl_confirm_undo_text|Voltar ao build que você tinha antes do último carregamento ou redefinição.
+2117351025|        |stl_nothing_to_undo|Nada para desfazer

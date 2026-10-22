@@ -44,7 +44,7 @@ try {
         }
         'package' { New-StlPackage $cfg }
         'clean'   {
-            if (Test-StlGameRunning) { throw 'clean: the game is running and uses dist/; quit it first' }
+            if (Test-StlFileLocked (Join-Path $cfg.Paths.ModDist 'content\blob0.bundle')) { throw 'clean: the game is using dist/; quit it first' }
             Clear-StlOutputs $cfg -All:$All
         }
         'help'    {

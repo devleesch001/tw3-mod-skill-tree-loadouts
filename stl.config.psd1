@@ -5,14 +5,16 @@
     Mod = @{
         Name        = 'modSkillTreeLoadouts'     # folder under <GameDir>\Mods
         DisplayName = 'Skill Tree Loadouts'
-        Version     = '1.0.0'
+        Version     = '1.1.0'
     }
 
     Strings = @{
         # string ids are 21<IdSpace>NNN (4 digits: 211nnnnNNN, 5 digits: 21nnnnnNNN), as in
         # src/strings/*.csv. Use the Nexus mod id once the mod page exists.
         IdSpace   = 14755                        # Nexus mod id
-        Languages = @('en', 'fr')                # src/strings/<lang>.csv -> <lang>.w3strings
+        # every language of the game; src/strings/<lang>.csv -> <lang>.w3strings
+        # (en is the reference: the others must have the same keys and $n$ markers)
+        Languages = @('en', 'fr', 'de', 'it', 'es', 'esmx', 'br', 'pl', 'cz', 'hu', 'ru', 'ua', 'tr', 'jp', 'kr', 'zh', 'cn', 'ar')
     }
 
     Ui = @{

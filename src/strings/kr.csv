@@ -1,0 +1,32 @@
+;meta[language=kr]
+; id      |key(hex)|key(str)| text
+;
+; Skill Tree Loadouts - 한국어. UTF-8 (BOM 없음). .\cli.ps1 build strings 로 빌드
+; $0$ $1$ $2$ 는 스크립트가 채웁니다.
+;
+2117351000|        |stl_preset_name|프리셋 $0$
+2117351001|        |stl_previous_build|이전 빌드
+2117351002|        |stl_levels_not_bought|구매하지 못한 스킬 레벨: $0$
+2117351003|        |stl_mutation_failed|변이를 장착하지 못했습니다
+2117351004|        |stl_slots_restored|장착한 스킬: $0$ / $1$
+2117351005|        |stl_mutagens_missing|부족한 변이원: $0$
+2117351006|        |stl_free_points|남은 스킬 포인트: $0$
+2117351007|        |stl_slots_count|장착한 스킬: $0$
+2117351008|        |stl_mutagens_count|변이원: $0$
+2117351009|        |stl_bad_index|프리셋 번호는 1~$0$ 사이여야 합니다
+2117351010|        |stl_empty|$0$: 비어 있음
+2117351011|        |stl_loaded|$0$ 불러옴
+2117351012|        |stl_saved|$0$ 저장됨 (스킬 $1$개, 포인트 $2$)
+2117351013|        |stl_reset_done|스킬 트리 초기화됨
+2117351014|        |stl_tree_skills|트리의 스킬: $0$
+2117351015|        |stl_cost|비용: $0$ / $1$ 포인트
+2117351016|        |stl_hold_to_save|저장하려면 버튼을 길게 누르세요
+2117351017|        |stl_btn_reset|초기화
+2117351018|        |stl_btn_undo|실행 취소
+2117351019|        |stl_confirm_load_title|$0$ 불러오기?
+2117351020|        |stl_confirm_load_text|스킬 포인트가 환급된 뒤 이 프리셋의 스킬 트리, 슬롯, 변이원, 변이를 다시 구성하는 데 다시 사용됩니다.
+2117351021|        |stl_confirm_reset_title|스킬 트리를 초기화하시겠습니까?
+2117351022|        |stl_confirm_reset_text|트리에 사용한 모든 포인트가 환급됩니다. 실행 취소로 이 빌드를 되돌릴 수 있습니다.
+2117351023|        |stl_confirm_undo_title|마지막 변경을 취소하시겠습니까?
+2117351024|        |stl_confirm_undo_text|마지막 프리셋 불러오기 또는 초기화 이전의 빌드로 돌아갑니다.
+2117351025|        |stl_nothing_to_undo|취소할 작업이 없습니다

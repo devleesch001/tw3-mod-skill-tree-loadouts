@@ -92,6 +92,18 @@ function Test-StlGameRunning {
     [bool](Get-Process witcher3 -ErrorAction SilentlyContinue)
 }
 
+# true when another process (the game, through the Mods link) holds the file open
+function Test-StlFileLocked([string]$Path) {
+    if (-not (Test-Path $Path)) { return $false }
+    try {
+        $stream = [IO.File]::Open($Path, 'Open', 'ReadWrite', 'None')
+        $stream.Close()
+        return $false
+    } catch [IO.IOException] {
+        return $true
+    }
+}
+
 # throws with a pointer to 'doctor' when a tool needed by a command is missing
 function Assert-StlTool([string]$Name, [string]$Path) {
     if (-not $Path -or -not (Test-Path $Path)) {

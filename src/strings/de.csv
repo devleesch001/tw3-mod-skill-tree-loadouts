@@ -1,0 +1,32 @@
+;meta[language=de]
+; id      |key(hex)|key(str)| text
+;
+; Skill Tree Loadouts - Deutsch. UTF-8 ohne BOM. Gebaut mit .\cli.ps1 build strings
+; $0$ $1$ $2$ werden vom Skript ersetzt.
+;
+2117351000|        |stl_preset_name|Preset $0$
+2117351001|        |stl_previous_build|Vorheriger Build
+2117351002|        |stl_levels_not_bought|$0$ Fertigkeitsstufe(n) konnten nicht gekauft werden:
+2117351003|        |stl_mutation_failed|Die Mutation konnte nicht ausgerüstet werden
+2117351004|        |stl_slots_restored|Ausgerüstete Fertigkeiten: $0$ / $1$
+2117351005|        |stl_mutagens_missing|$0$ Mutagen(e) fehlen
+2117351006|        |stl_free_points|Freie Fertigkeitspunkte: $0$
+2117351007|        |stl_slots_count|Ausgerüstete Fertigkeiten: $0$
+2117351008|        |stl_mutagens_count|Mutagene: $0$
+2117351009|        |stl_bad_index|Die Preset-Nummer muss zwischen 1 und $0$ liegen
+2117351010|        |stl_empty|$0$ ist leer
+2117351011|        |stl_loaded|$0$ geladen
+2117351012|        |stl_saved|$0$ gespeichert ($1$ Fertigkeiten, $2$ Punkte)
+2117351013|        |stl_reset_done|Fertigkeitenbaum zurückgesetzt
+2117351014|        |stl_tree_skills|Fertigkeiten im Baum: $0$
+2117351015|        |stl_cost|Kosten: $0$ / $1$ Punkte
+2117351016|        |stl_hold_to_save|Halte die Schaltfläche gedrückt, um zu speichern
+2117351017|        |stl_btn_reset|Zurücksetzen
+2117351018|        |stl_btn_undo|Rückgängig
+2117351019|        |stl_confirm_load_title|$0$ laden?
+2117351020|        |stl_confirm_load_text|Deine Fertigkeitspunkte werden erstattet und erneut ausgegeben, um Fertigkeitenbaum, Plätze, Mutagene und Mutation dieses Presets wiederherzustellen.
+2117351021|        |stl_confirm_reset_title|Fertigkeitenbaum zurücksetzen?
+2117351022|        |stl_confirm_reset_text|Alle im Baum ausgegebenen Punkte werden erstattet. Mit „Rückgängig“ erhältst du diesen Build zurück.
+2117351023|        |stl_confirm_undo_title|Letzte Änderung rückgängig machen?
+2117351024|        |stl_confirm_undo_text|Zurück zu dem Build, den du vor dem letzten Laden oder Zurücksetzen hattest.
+2117351025|        |stl_nothing_to_undo|Nichts rückgängig zu machen

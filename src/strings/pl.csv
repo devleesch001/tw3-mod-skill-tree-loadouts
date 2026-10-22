@@ -1,0 +1,32 @@
+;meta[language=pl]
+; id      |key(hex)|key(str)| text
+;
+; Skill Tree Loadouts - Polski. UTF-8 bez BOM. Budowane przez .\cli.ps1 build strings
+; $0$ $1$ $2$ są podmieniane przez skrypt.
+;
+2117351000|        |stl_preset_name|Zestaw $0$
+2117351001|        |stl_previous_build|Poprzedni build
+2117351002|        |stl_levels_not_bought|Nie udało się kupić poziomów umiejętności: $0$
+2117351003|        |stl_mutation_failed|Nie udało się aktywować mutacji
+2117351004|        |stl_slots_restored|Umiejętności w gniazdach: $0$ / $1$
+2117351005|        |stl_mutagens_missing|Brakujące mutageny: $0$
+2117351006|        |stl_free_points|Wolne punkty umiejętności: $0$
+2117351007|        |stl_slots_count|Umiejętności w gniazdach: $0$
+2117351008|        |stl_mutagens_count|Mutageny: $0$
+2117351009|        |stl_bad_index|Numer zestawu musi wynosić od 1 do $0$
+2117351010|        |stl_empty|$0$ jest pusty
+2117351011|        |stl_loaded|Wczytano: $0$
+2117351012|        |stl_saved|Zapisano: $0$ (umiejętności: $1$, punkty: $2$)
+2117351013|        |stl_reset_done|Drzewko umiejętności zresetowane
+2117351014|        |stl_tree_skills|Umiejętności w drzewku: $0$
+2117351015|        |stl_cost|Koszt: $0$ / $1$ pkt
+2117351016|        |stl_hold_to_save|Przytrzymaj przycisk, aby zapisać
+2117351017|        |stl_btn_reset|Resetuj
+2117351018|        |stl_btn_undo|Cofnij
+2117351019|        |stl_confirm_load_title|Wczytać $0$?
+2117351020|        |stl_confirm_load_text|Punkty umiejętności zostaną zwrócone i wydane ponownie, aby odtworzyć drzewko, gniazda, mutageny i mutację tego zestawu.
+2117351021|        |stl_confirm_reset_title|Zresetować drzewko umiejętności?
+2117351022|        |stl_confirm_reset_text|Wszystkie punkty wydane w drzewku zostaną zwrócone. Użyj Cofnij, aby odzyskać ten build.
+2117351023|        |stl_confirm_undo_title|Cofnąć ostatnią zmianę?
+2117351024|        |stl_confirm_undo_text|Powrót do buildu sprzed ostatniego wczytania zestawu lub resetu.
+2117351025|        |stl_nothing_to_undo|Nie ma czego cofnąć

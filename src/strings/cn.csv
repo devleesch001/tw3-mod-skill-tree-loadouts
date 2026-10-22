@@ -1,0 +1,32 @@
+;meta[language=cn]
+; id      |key(hex)|key(str)| text
+;
+; Skill Tree Loadouts - 简体中文. UTF-8（无 BOM）。用 .\cli.ps1 build strings 构建
+; $0$ $1$ $2$ 由脚本填入。
+;
+2117351000|        |stl_preset_name|预设 $0$
+2117351001|        |stl_previous_build|先前的配置
+2117351002|        |stl_levels_not_bought|无法购买的技能等级：$0$
+2117351003|        |stl_mutation_failed|无法装备突变
+2117351004|        |stl_slots_restored|已装备技能：$0$ / $1$
+2117351005|        |stl_mutagens_missing|缺少的突变诱导物：$0$
+2117351006|        |stl_free_points|可用技能点：$0$
+2117351007|        |stl_slots_count|已装备技能：$0$
+2117351008|        |stl_mutagens_count|突变诱导物：$0$
+2117351009|        |stl_bad_index|预设编号必须在 1 到 $0$ 之间
+2117351010|        |stl_empty|$0$ 为空
+2117351011|        |stl_loaded|已载入 $0$
+2117351012|        |stl_saved|已保存 $0$（$1$ 项技能，$2$ 点）
+2117351013|        |stl_reset_done|技能树已重置
+2117351014|        |stl_tree_skills|技能树中的技能：$0$
+2117351015|        |stl_cost|花费：$0$ / $1$ 点
+2117351016|        |stl_hold_to_save|按住按钮以保存
+2117351017|        |stl_btn_reset|重置
+2117351018|        |stl_btn_undo|撤销
+2117351019|        |stl_confirm_load_title|载入 $0$？
+2117351020|        |stl_confirm_load_text|你的技能点将被返还，并重新投入以重建此预设的技能树、槽位、突变诱导物和突变。
+2117351021|        |stl_confirm_reset_title|重置技能树？
+2117351022|        |stl_confirm_reset_text|投入技能树的所有技能点都将返还。使用“撤销”可恢复此配置。
+2117351023|        |stl_confirm_undo_title|撤销上一次更改？
+2117351024|        |stl_confirm_undo_text|回到上一次载入预设或重置之前的配置。
+2117351025|        |stl_nothing_to_undo|没有可撤销的操作

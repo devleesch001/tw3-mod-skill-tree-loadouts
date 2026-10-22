@@ -76,7 +76,10 @@ With the debug console enabled, the same actions are available as commands:
 
 ## Languages
 
-English and French. Other languages show the English texts.
+Every language of the game: English, French, German, Italian, Spanish (Spain and Mexico),
+Brazilian Portuguese, Polish, Czech, Hungarian, Russian, Ukrainian, Turkish, Japanese,
+Korean, Traditional and Simplified Chinese, Arabic. English and French are proofread; the
+other translations are first versions, corrections are welcome.
 
 ## Uninstallation
 
