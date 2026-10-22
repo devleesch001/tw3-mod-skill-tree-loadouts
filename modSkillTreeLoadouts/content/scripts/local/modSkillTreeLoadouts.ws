@@ -553,16 +553,17 @@ function StlLoc( key : string, fallback : string ) : string
 	return s;
 }
 
-// StlLoc with $0$, $1$, $2$ replaced by the given values. Same "$X$" style as the game's own
-// strings: with {0} markers the game dropped the spaces around them.
+// StlLoc with $0$, $1$, $2$ replaced by the given values (each used once per string). Uses
+// StrReplace like the game's own "$I$" strings: StrReplaceAll dropped the spaces around the
+// replaced marker ("Preset1chargé").
 function StlLocF( key : string, fallback : string, optional a : string, optional b : string, optional c : string ) : string
 {
 	var s : string;
 
 	s = StlLoc( key, fallback );
-	s = StrReplaceAll( s, "$0$", a );
-	s = StrReplaceAll( s, "$1$", b );
-	s = StrReplaceAll( s, "$2$", c );
+	s = StrReplace( s, "$0$", a );
+	s = StrReplace( s, "$1$", b );
+	s = StrReplace( s, "$2$", c );
 	return s;
 }
 
