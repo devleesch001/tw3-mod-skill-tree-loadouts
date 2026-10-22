@@ -443,14 +443,43 @@ function StlUsingLegacyTree() : bool
 
 // ---- skills screen UI (blob0.bundle, built from ui\scripts by tools\build-ui.ps1) ----
 
-// preset bar state for the Flash side ("character.stl.presets"): one { name, used, active }
-// object per preset
+// actions confirmed by CStlConfirmPopup
+function StlActionLoad() : int		{ return 0; }
+function StlActionReset() : int		{ return 1; }
+function StlActionUndo() : int		{ return 2; }
+
+class CStlConfirmPopup extends ConfirmationPopupData
+{
+	public var menuRef	: CR4CharacterDupeMenu;
+	public var action	: int;
+	public var idx		: int;
+
+	protected function OnUserAccept() : void
+	{
+		menuRef.StlDoAction( action, idx );
+	}
+
+	protected function OnUserDecline() : void
+	{
+		super.OnUserDecline();
+		theSound.SoundEvent( "gui_global_panel_close" );
+	}
+}
+
+// keeps the open confirmation popup referenced
+@addField(CR4CharacterDupeMenu)
+var stlPopup : CStlConfirmPopup;
+
+// preset bar state for the Flash side:
+// "character.stl.presets" = one { name, used, active } object per preset,
+// "character.stl.actions" = { name, enabled } for the Reset and Undo buttons
 @addMethod(CR4CharacterDupeMenu) function StlSendPresets()
 {
 	var data : CStlData;
 	var list : CScriptedFlashArray;
 	var item : CScriptedFlashObject;
 	var p : CStlPreset;
+	var undo : CStlPreset;
 	var i : int;
 
 	data = GetWitcherPlayer().StlGetData();
@@ -465,6 +494,18 @@ function StlUsingLegacyTree() : bool
 		list.PushBackFlashObject( item );
 	}
 	m_flashValueStorage.SetFlashArray( "character.stl.presets", list );
+
+	undo = data.Get( StlUndoIndex() );
+	list = m_flashValueStorage.CreateTempFlashArray();
+	item = m_flashValueStorage.CreateTempFlashObject();
+	item.SetMemberFlashString( "name", StlLoc( "stl_btn_reset", "Reset" ) );
+	item.SetMemberFlashBool( "enabled", true );
+	list.PushBackFlashObject( item );
+	item = m_flashValueStorage.CreateTempFlashObject();
+	item.SetMemberFlashString( "name", StlLoc( "stl_btn_undo", "Undo" ) );
+	item.SetMemberFlashBool( "enabled", undo.used );
+	list.PushBackFlashObject( item );
+	m_flashValueStorage.SetFlashArray( "character.stl.actions", list );
 }
 
 // sent by the modded panel_character_dupe once it registered "character.stl.presets"
@@ -473,19 +514,82 @@ function StlUsingLegacyTree() : bool
 	StlSendPresets();
 }
 
-// preset button clicked
+// preset button clicked: ask before rebuying the tree
 @addMethod(CR4CharacterDupeMenu) event OnStlPresetLoad( idx : int )
 {
+	var data : CStlData;
 	var p : CStlPreset;
 
-	p = GetWitcherPlayer().StlGetData().Get( idx );
+	data = GetWitcherPlayer().StlGetData();
+	p = data.Get( idx );
 	if ( !p || !p.used )
 	{
 		OnPlaySoundEvent( "gui_global_denied" );
-		StlNotify( StlLocF( "stl_empty", "$0$ is empty", GetWitcherPlayer().StlGetData().DisplayName( idx ) )
+		StlNotify( StlLocF( "stl_empty", "$0$ is empty", data.DisplayName( idx ) )
 			+ "<br>" + StlLoc( "stl_hold_to_save", "Hold the button to save" ) );
+		return false;
 	}
-	else if ( StlLoadAndNotify( idx ) )
+	StlConfirm( StlActionLoad(), idx,
+		StlLocF( "stl_confirm_load_title", "Load $0$?", data.DisplayName( idx ) ),
+		StlLoc( "stl_confirm_load_text", "Your skill points will be refunded and spent again to rebuild this preset's skill tree, slots, mutagens and mutation." ) );
+}
+
+@addMethod(CR4CharacterDupeMenu) event OnStlReset()
+{
+	StlConfirm( StlActionReset(), -1,
+		StlLoc( "stl_confirm_reset_title", "Reset the skill tree?" ),
+		StlLoc( "stl_confirm_reset_text", "All skill points spent in the tree will be refunded. Use Undo to get this build back." ) );
+}
+
+@addMethod(CR4CharacterDupeMenu) event OnStlUndo()
+{
+	var undo : CStlPreset;
+
+	undo = GetWitcherPlayer().StlGetData().Get( StlUndoIndex() );
+	if ( !undo.used )
+	{
+		OnPlaySoundEvent( "gui_global_denied" );
+		StlNotify( StlLoc( "stl_nothing_to_undo", "Nothing to undo" ) );
+		return false;
+	}
+	StlConfirm( StlActionUndo(), StlUndoIndex(),
+		StlLoc( "stl_confirm_undo_title", "Undo the last change?" ),
+		StlLoc( "stl_confirm_undo_text", "Go back to the build you had before the last preset load or reset." ) );
+}
+
+// the game's yes/no popup (same as buying a skill); StlDoAction runs on "yes"
+@addMethod(CR4CharacterDupeMenu) function StlConfirm( action : int, idx : int, title : string, text : string )
+{
+	if ( thePlayer.IsInCombat() )
+	{
+		OnPlaySoundEvent( "gui_global_denied" );
+		StlCombatDenied();
+		return;
+	}
+	stlPopup = new CStlConfirmPopup in this;
+	stlPopup.HideTutorial = true;
+	stlPopup.BlurBackground = true;
+	stlPopup.SetMessageTitle( title );
+	stlPopup.SetMessageText( text );
+	stlPopup.menuRef = this;
+	stlPopup.action = action;
+	stlPopup.idx = idx;
+	RequestSubMenu( 'PopupMenu', stlPopup );
+}
+
+@addMethod(CR4CharacterDupeMenu) function StlDoAction( action : int, idx : int )
+{
+	var ok : bool;
+
+	if ( action == StlActionReset() )
+	{
+		ok = StlResetAndNotify();
+	}
+	else
+	{
+		ok = StlLoadAndNotify( idx );
+	}
+	if ( ok )
 	{
 		OnPlaySoundEvent( "gui_character_add_skill" );
 	}
@@ -493,6 +597,8 @@ function StlUsingLegacyTree() : bool
 	{
 		OnPlaySoundEvent( "gui_global_denied" );
 	}
+	// the popup is still the last menu, so StlRefreshCharacterMenu() did not reach this one
+	StlRefresh();
 	StlSendPresets();
 }
 
@@ -683,6 +789,22 @@ function StlSaveAndNotify( idx : int ) : bool
 	return true;
 }
 
+function StlResetAndNotify() : bool
+{
+	var w : W3PlayerWitcher;
+
+	w = GetWitcherPlayer();
+	if ( !w.StlResetTree() )
+	{
+		StlCombatDenied();
+		return false;
+	}
+	StlRefreshCharacterMenu();
+	StlNotify( StlLoc( "stl_reset_done", "Skill tree reset" ) + "<br>"
+		+ StlLocF( "stl_free_points", "Free skill points: $0$", IntToString( w.levelManager.GetPointsFree( ESkillPoint ) ) ) );
+	return true;
+}
+
 // ---- debug console ----
 
 exec function stl_save( n : int )
@@ -704,17 +826,7 @@ exec function stl_load( n : int )
 // refunds all tree points (like a Potion of Clearance, none used); stl_undo restores
 exec function stl_reset()
 {
-	var w : W3PlayerWitcher;
-
-	w = GetWitcherPlayer();
-	if ( !w.StlResetTree() )
-	{
-		StlCombatDenied();
-		return;
-	}
-	StlRefreshCharacterMenu();
-	StlNotify( StlLoc( "stl_reset_done", "Skill tree reset" ) + "<br>"
-		+ StlLocF( "stl_free_points", "Free skill points: $0$", IntToString( w.levelManager.GetPointsFree( ESkillPoint ) ) ) );
+	StlResetAndNotify();
 }
 
 // reloads the build that was active before the last stl_load / stl_reset

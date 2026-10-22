@@ -21,3 +21,12 @@
 2117351014|        |stl_tree_skills|Compétences de l'arbre : $0$
 2117351015|        |stl_cost|Coût : $0$ / $1$ points
 2117351016|        |stl_hold_to_save|Maintenez le bouton pour sauvegarder
+2117351017|        |stl_btn_reset|Réinitialiser
+2117351018|        |stl_btn_undo|Annuler
+2117351019|        |stl_confirm_load_title|Charger $0$ ?
+2117351020|        |stl_confirm_load_text|Vos points de compétence seront remboursés puis réinvestis pour reconstruire l'arbre, les emplacements, les mutagènes et la mutation de ce preset.
+2117351021|        |stl_confirm_reset_title|Réinitialiser l'arbre de compétences ?
+2117351022|        |stl_confirm_reset_text|Tous les points investis dans l'arbre seront remboursés. Utilisez Annuler pour retrouver ce build.
+2117351023|        |stl_confirm_undo_title|Annuler le dernier changement ?
+2117351024|        |stl_confirm_undo_text|Revenir au build que vous aviez avant le dernier chargement de preset ou la dernière réinitialisation.
+2117351025|        |stl_nothing_to_undo|Rien à annuler

@@ -105,15 +105,24 @@ package red.game.witcher3.menus.character_menu
 
       // ---- Skill Tree Loadouts: preset bar ----
 
+      // buttons 0..STL_COUNT-1 are presets, then STL_RESET and STL_UNDO
       private const STL_COUNT:int = 5;
+
+      private const STL_RESET:int = 5;
+
+      private const STL_UNDO:int = 6;
 
       private const STL_HOLD_MS:int = 1000;
 
-      private const STL_BTN_W:Number = 168;
+      private const STL_PRESET_W:Number = 120;
+
+      private const STL_ACTION_W:Number = 132;
 
       private const STL_BTN_H:Number = 44;
 
-      private const STL_BTN_GAP:Number = 12;
+      private const STL_BTN_GAP:Number = 8;
+
+      private const STL_GROUP_GAP:Number = 20;
 
       private var _stlBar:Sprite;
 
@@ -122,6 +131,8 @@ package red.game.witcher3.menus.character_menu
       private var _stlLabels:Array = [];
 
       private var _stlData:Array = [];
+
+      private var _stlActions:Array = [];
 
       private var _stlHover:int = -1;
 
@@ -194,6 +205,7 @@ package red.game.witcher3.menus.character_menu
          // Skill Tree Loadouts: preset bar, filled by the script on OnStlUiReady (sent after OnConfigUI)
          this.stlCreateBar();
          dispatchEvent(new GameEvent(GameEvent.REGISTER,"character.stl.presets",[this.stlSetPresets]));
+         dispatchEvent(new GameEvent(GameEvent.REGISTER,"character.stl.actions",[this.stlSetActions]));
          if(!Extensions.isScaleform)
          {
             this.initDebugData();
@@ -963,22 +975,34 @@ package red.game.witcher3.menus.character_menu
 
       // ---- Skill Tree Loadouts: preset bar ----
       // One button per preset under the equipped skills: click = OnStlPresetLoad(idx),
-      // hold STL_HOLD_MS = OnStlPresetSave(idx). The script answers with "character.stl.presets".
+      // hold STL_HOLD_MS = OnStlPresetSave(idx); then Reset (OnStlReset) and Undo (OnStlUndo).
+      // The script answers with "character.stl.presets" and "character.stl.actions".
+
+      private function stlButtonWidth(idx:int) : Number
+      {
+         return idx < this.STL_COUNT ? this.STL_PRESET_W : this.STL_ACTION_W;
+      }
 
       private function stlCreateBar() : void
       {
          var i:int = 0;
+         var posX:Number = 0;
          var btn:Sprite = null;
          var label:TextField = null;
          var fmt:TextFormat = this.txfAvailablePoints.getTextFormat();
-         fmt.size = 22;
+         fmt.size = 20;
          fmt.align = TextFormatAlign.CENTER;
          this._stlBar = new Sprite();
-         for(i = 0; i < this.STL_COUNT; i++)
+         for(i = 0; i <= this.STL_UNDO; i++)
          {
+            if(i == this.STL_RESET)
+            {
+               posX += this.STL_GROUP_GAP - this.STL_BTN_GAP;
+            }
             btn = new Sprite();
-            btn.name = "stlPreset" + i;
-            btn.x = i * (this.STL_BTN_W + this.STL_BTN_GAP);
+            btn.name = "stlButton" + i;
+            btn.x = posX;
+            posX += this.stlButtonWidth(i) + this.STL_BTN_GAP;
             btn.buttonMode = true;
             btn.mouseChildren = false;
             label = new TextField();
@@ -987,7 +1011,7 @@ package red.game.witcher3.menus.character_menu
             label.selectable = false;
             label.mouseEnabled = false;
             label.x = 4;
-            label.width = this.STL_BTN_W - 8;
+            label.width = this.stlButtonWidth(i) - 8;
             label.height = 30;
             label.y = (this.STL_BTN_H - label.height) / 2;
             btn.addChild(label);
@@ -1007,7 +1031,8 @@ package red.game.witcher3.menus.character_menu
       private function stlLayout() : void
       {
          var slots:Rectangle = this.moduleSkillSlot.getBounds(this);
-         var total:Number = this.STL_COUNT * this.STL_BTN_W + (this.STL_COUNT - 1) * this.STL_BTN_GAP;
+         var last:Sprite = this._stlButtons[this.STL_UNDO] as Sprite;
+         var total:Number = last.x + this.STL_ACTION_W;
          this._stlBar.x = Math.round(slots.x + (slots.width - total) / 2);
          this._stlBar.y = Math.round(this.txfAvailablePoints.y + (this.txfAvailablePoints.height - this.STL_BTN_H) / 2);
       }
@@ -1015,6 +1040,12 @@ package red.game.witcher3.menus.character_menu
       public function stlSetPresets(value:Array) : void
       {
          this._stlData = value ? value : [];
+         this.stlRedrawAll();
+      }
+
+      public function stlSetActions(value:Array) : void
+      {
+         this._stlActions = value ? value : [];
          this.stlRedrawAll();
       }
 
@@ -1031,30 +1062,45 @@ package red.game.witcher3.menus.character_menu
       {
          var btn:Sprite = this._stlButtons[idx] as Sprite;
          var label:TextField = this._stlLabels[idx] as TextField;
-         var data:Object = idx < this._stlData.length ? this._stlData[idx] : null;
-         var used:Boolean = Boolean(data) && Boolean(data.used);
-         var active:Boolean = Boolean(data) && Boolean(data.active);
+         var isPreset:Boolean = idx < this.STL_COUNT;
+         var actionIdx:int = idx - this.STL_RESET;
+         var data:Object = null;
+         var lit:Boolean = false;
+         var active:Boolean = false;
          var hover:Boolean = this._stlHover == idx;
          var progress:Number = 0;
-         var border:uint = active ? 0xD9B45A : (hover ? 0xBFA36A : 0x6B5F48);
-         if(this._stlHoldIdx == idx && !this._stlHoldSaved)
+         var btnW:Number = this.stlButtonWidth(idx);
+         var border:uint = 0;
+         if(isPreset)
+         {
+            data = idx < this._stlData.length ? this._stlData[idx] : null;
+            lit = Boolean(data) && Boolean(data.used);
+            active = Boolean(data) && Boolean(data.active);
+         }
+         else
+         {
+            data = actionIdx < this._stlActions.length ? this._stlActions[actionIdx] : null;
+            lit = Boolean(data) && Boolean(data.enabled);
+         }
+         border = active ? 0xD9B45A : (hover ? 0xBFA36A : 0x6B5F48);
+         if(isPreset && this._stlHoldIdx == idx && !this._stlHoldSaved)
          {
             progress = Math.min(1,(getTimer() - this._stlHoldStart) / this.STL_HOLD_MS);
          }
          btn.graphics.clear();
          btn.graphics.lineStyle(active ? 2 : 1,border,1);
          btn.graphics.beginFill(hover ? 0x2A241A : 0x000000,hover ? 0.8 : 0.55);
-         btn.graphics.drawRect(0,0,this.STL_BTN_W,this.STL_BTN_H);
+         btn.graphics.drawRect(0,0,btnW,this.STL_BTN_H);
          btn.graphics.endFill();
          if(progress > 0)
          {
             btn.graphics.lineStyle();
             btn.graphics.beginFill(0xD9B45A,0.45);
-            btn.graphics.drawRect(1,1,(this.STL_BTN_W - 2) * progress,this.STL_BTN_H - 2);
+            btn.graphics.drawRect(1,1,(btnW - 2) * progress,this.STL_BTN_H - 2);
             btn.graphics.endFill();
          }
          label.text = data ? String(data.name) : "";
-         label.textColor = used ? 0xFFFFFF : 0x8C8C8C;
+         label.textColor = lit ? 0xFFFFFF : 0x8C8C8C;
       }
 
       private function stlIndexOf(target:Object) : int
@@ -1089,7 +1135,7 @@ package red.game.witcher3.menus.character_menu
          {
             return;
          }
-         if(!this._stlHoldSaved && getTimer() - this._stlHoldStart >= this.STL_HOLD_MS)
+         if(this._stlHoldIdx < this.STL_COUNT && !this._stlHoldSaved && getTimer() - this._stlHoldStart >= this.STL_HOLD_MS)
          {
             this._stlHoldSaved = true;
             dispatchEvent(new GameEvent(GameEvent.CALL,"OnStlPresetSave",[this._stlHoldIdx]));
@@ -1097,7 +1143,7 @@ package red.game.witcher3.menus.character_menu
          this.stlRedraw(this._stlHoldIdx);
       }
 
-      // released before the hold time over the same button: load; otherwise nothing more to do
+      // released over the same button before the hold time: click; after a save, nothing more
       private function stlOnMouseUp(event:MouseEvent) : void
       {
          var idx:int = this._stlHoldIdx;
@@ -1106,7 +1152,18 @@ package red.game.witcher3.menus.character_menu
          this._stlHoldIdx = -1;
          if(idx >= 0 && !this._stlHoldSaved && this._stlHover == idx)
          {
-            dispatchEvent(new GameEvent(GameEvent.CALL,"OnStlPresetLoad",[idx]));
+            if(idx == this.STL_RESET)
+            {
+               dispatchEvent(new GameEvent(GameEvent.CALL,"OnStlReset",[]));
+            }
+            else if(idx == this.STL_UNDO)
+            {
+               dispatchEvent(new GameEvent(GameEvent.CALL,"OnStlUndo",[]));
+            }
+            else
+            {
+               dispatchEvent(new GameEvent(GameEvent.CALL,"OnStlPresetLoad",[idx]));
+            }
          }
          if(idx >= 0)
          {
