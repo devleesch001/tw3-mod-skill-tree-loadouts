@@ -133,6 +133,10 @@ function Build-StlUi($Cfg, $Tc, [switch]$Force) {
     Invoke-StlWcc $Tc @('pack', "-dir=$pack", "-outdir=$packed")
     Invoke-StlWcc $Tc @('metadatastore', "-path=$packed")
     Copy-Item (Join-Path $packed 'blob0.bundle'), (Join-Path $packed 'metadata.store') $out -Force
+    # second copy that the game never opens: 'package' reads this one, so it works with the game running
+    $keep = Join-Path $Cfg.Paths.Build 'ui'
+    New-Item -ItemType Directory -Force $keep | Out-Null
+    Copy-Item (Join-Path $packed 'blob0.bundle'), (Join-Path $packed 'metadata.store') $keep -Force
     Set-Content -Path $stampFile -Value $stamp -Encoding ASCII
     Write-Host "ui: blob0.bundle ($([math]::Round((Get-Item $bundleOut).Length / 1MB, 1)) MB)"
 }

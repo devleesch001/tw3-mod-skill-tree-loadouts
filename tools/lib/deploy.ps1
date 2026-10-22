@@ -33,12 +33,17 @@ function Start-StlGame($Cfg) {
     Write-Host 'run: game started (script compile errors are shown at startup)'
 }
 
-# zip of dist/, laid out like the game folder: extract it into <GameDir>
+# zip of dist/, laid out like the game folder: extract it into <GameDir>.
+# The running game keeps dist's bundle open, so the bundle files come from the copy that
+# 'build ui' keeps in work/build/ui.
 function New-StlPackage($Cfg) {
-    if (Test-StlGameRunning) { throw 'package: the game is running and locks the mod bundle; quit it first' }
     $content = Join-Path $Cfg.Paths.ModDist 'content'
-    foreach ($f in 'scripts\local', 'blob0.bundle', 'metadata.store') {
+    $keep = Join-Path $Cfg.Paths.Build 'ui'
+    foreach ($f in 'scripts\local', 'en.w3strings') {
         if (-not (Test-Path (Join-Path $content $f))) { throw "package: dist is incomplete ($f), run '.\cli.ps1 build' first" }
+    }
+    foreach ($f in 'blob0.bundle', 'metadata.store') {
+        if (-not (Test-Path (Join-Path $keep $f))) { throw "package: no built UI bundle in work\build\ui, run '.\cli.ps1 build ui -Force' (game closed) once" }
     }
     # the player README ships inside the mod folder, as other mods do
     Copy-Item (Join-Path $Cfg.Paths.Src 'release\README.md') (Join-Path $Cfg.Paths.ModDist 'README.md') -Force
@@ -52,7 +57,11 @@ function New-StlPackage($Cfg) {
     try {
         foreach ($file in Get-ChildItem $Cfg.Paths.Dist -Recurse -File) {
             $entry = $file.FullName.Substring($Cfg.Paths.Dist.Length + 1) -replace '\\', '/'
-            [void][IO.Compression.ZipFileExtensions]::CreateEntryFromFile($archive, $file.FullName, $entry, [IO.Compression.CompressionLevel]::Optimal)
+            $source = $file.FullName
+            if ($file.DirectoryName -eq $content -and $file.Name -in 'blob0.bundle', 'metadata.store') {
+                $source = Join-Path $keep $file.Name
+            }
+            [void][IO.Compression.ZipFileExtensions]::CreateEntryFromFile($archive, $source, $entry, [IO.Compression.CompressionLevel]::Optimal)
         }
     } finally {
         $archive.Dispose()
