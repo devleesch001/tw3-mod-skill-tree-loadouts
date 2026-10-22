@@ -1,2 +1,5 @@
 # Third-party utils
 utils/
+
+# Extracted game files and build intermediates
+work/
