@@ -68,6 +68,7 @@ struct STspLoadReport
 {
 	var missingLevels	: int;
 	var missingSlots	: int;
+	var savedSlots		: int;
 	var missingMutagens	: int;
 	var mutationFailed	: bool;
 	var pointsLeft		: int;
@@ -176,6 +177,7 @@ saved var tspData : CTspData;
 		report.mutationFailed = !SetEquippedMutation( p.mutation );
 	}
 
+	report.savedSlots = p.slotIds.Size();
 	report.missingSlots = TspEquipSlots( p );
 	report.missingMutagens = TspEquipMutagens( p );
 	report.pointsLeft = levelManager.GetPointsFree( ESkillPoint );
@@ -344,6 +346,77 @@ saved var tspData : CTspData;
 		- ( (W3PlayerAbilityManager)abilityManager ).GetMutationsUsedSkillPoints();
 }
 
+// refunds every tree point without a potion; the current build goes to the undo slot
+@addMethod(W3PlayerWitcher) function TspResetTree() : bool
+{
+	if ( IsInCombat() )
+	{
+		return false;
+	}
+	TspSave( TspUndoIndex() );
+	ResetCharacterDev();
+	return true;
+}
+
+// ---- character menu refresh ----
+// The skills screen caches what it shows; after a change made outside of it (console),
+// redraw it the same way it redraws itself after buying or equipping a skill.
+
+@addMethod(CR4CharacterDupeMenu) function TspRefresh()
+{
+	var slots : array< SSkillSlot >;
+	var i : int;
+
+	slots = thePlayer.GetSkillSlots();
+	for ( i = 0; i < slots.Size(); i += 1 )
+	{
+		m_fxClearSkillSlot.InvokeSelfOneArg( FlashArgInt( slots[ i ].id ) );
+	}
+	UpdateData( true );
+	UpdateMasterMutation();
+}
+
+@addMethod(CR4CharacterMenu) function TspRefresh()
+{
+	var slots : array< SSkillSlot >;
+	var i : int;
+
+	slots = thePlayer.GetSkillSlots();
+	for ( i = 0; i < slots.Size(); i += 1 )
+	{
+		m_fxClearSkillSlot.InvokeSelfOneArg( FlashArgInt( slots[ i ].id ) );
+	}
+	UpdateData( true );
+	UpdateMasterMutation();
+}
+
+// redraws the skills screen if it is the menu currently shown
+function TspRefreshCharacterMenu()
+{
+	var root : CR4MenuBase;
+	var last : CR4MenuBase;
+	var dupe : CR4CharacterDupeMenu;
+	var legacy : CR4CharacterMenu;
+
+	root = (CR4MenuBase)theGame.GetGuiManager().GetRootMenu();
+	if ( !root )
+	{
+		return;
+	}
+	last = root.GetLastChild();
+	dupe = (CR4CharacterDupeMenu)last;
+	if ( dupe )
+	{
+		dupe.TspRefresh();
+		return;
+	}
+	legacy = (CR4CharacterMenu)last;
+	if ( legacy )
+	{
+		legacy.TspRefresh();
+	}
+}
+
 // ---- notifications ----
 
 function TspNotify( msg : string )
@@ -363,10 +436,8 @@ function TspReportText( report : STspLoadReport ) : string
 	{
 		msg += "<br>Mutation could not be equipped";
 	}
-	if ( report.missingSlots > 0 )
-	{
-		msg += "<br>" + IntToString( report.missingSlots ) + " skill slot(s) left empty";
-	}
+	msg += "<br>Slotted skills: " + IntToString( report.savedSlots - report.missingSlots )
+		+ " / " + IntToString( report.savedSlots );
 	if ( report.missingMutagens > 0 )
 	{
 		msg += "<br>" + IntToString( report.missingMutagens ) + " mutagen(s) missing";
@@ -401,6 +472,7 @@ function TspLoadAndNotify( idx : int )
 		TspNotify( w.TspGetData().DisplayName( idx ) + " is empty" );
 		return;
 	}
+	TspRefreshCharacterMenu();
 	TspNotify( w.TspGetData().DisplayName( idx ) + " loaded" + TspReportText( report ) );
 }
 
@@ -426,7 +498,9 @@ exec function tsp_save( n : int )
 		p = w.TspGetData().Get( n - 1 );
 		TspNotify( w.TspGetData().DisplayName( n - 1 ) + " saved ("
 			+ IntToString( p.treeSkills.Size() ) + " skills, "
-			+ IntToString( w.TspPresetCost( p ) ) + " points)" );
+			+ IntToString( w.TspPresetCost( p ) ) + " points)"
+			+ "<br>Slotted skills: " + IntToString( p.slotIds.Size() )
+			+ "<br>Mutagens: " + IntToString( p.mutagenSlots.Size() ) );
 	}
 }
 
@@ -438,7 +512,23 @@ exec function tsp_load( n : int )
 	}
 }
 
-// reloads the build that was active before the last tsp_load
+// refunds all tree points (like a Potion of Clearance, none used); tsp_undo restores
+exec function tsp_reset()
+{
+	var w : W3PlayerWitcher;
+
+	w = GetWitcherPlayer();
+	if ( !w.TspResetTree() )
+	{
+		TspNotify( GetLocStringByKeyExt( "menu_cannot_perform_action_combat" ) );
+		return;
+	}
+	TspRefreshCharacterMenu();
+	TspNotify( "Skill tree reset<br>Free skill points: "
+		+ IntToString( w.levelManager.GetPointsFree( ESkillPoint ) ) );
+}
+
+// reloads the build that was active before the last tsp_load / tsp_reset
 exec function tsp_undo()
 {
 	TspLoadAndNotify( TspUndoIndex() );
