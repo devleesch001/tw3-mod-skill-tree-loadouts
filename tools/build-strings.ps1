@@ -1,6 +1,8 @@
 <#
   Encodes strings\<lang>.csv into modSkillTreeLoadouts\content\<lang>.w3strings
-  with the w3strings encoder (utils\w3strings encoder\w3strings.exe).
+  with "w3strings Remastered" (utils\w3stringsr.exe, Nexus 13094). Remastered (5.0) reads
+  only the v164 UTF-8 format, which is that encoder's default; rmemr's encoder writes v162
+  and shows garbled text in game.
 
     .\tools\build-strings.ps1
 #>
@@ -11,21 +13,15 @@ param(
 
 $ErrorActionPreference = "Stop"
 $root    = Split-Path $PSScriptRoot -Parent
-$encoder = Join-Path $root "utils\w3strings encoder\w3strings.exe"
+$encoder = Join-Path $root "utils\w3stringsr.exe"
 $csvDir  = Join-Path $root "strings"
 $outDir  = Join-Path $root "modSkillTreeLoadouts\content"
-$tmpDir  = Join-Path $env:TEMP "stl-strings"
 
-if (-not (Test-Path $encoder)) { throw "w3strings encoder not found: $encoder" }
-New-Item -ItemType Directory -Force $tmpDir | Out-Null
+if (-not (Test-Path $encoder)) { throw "w3strings Remastered encoder not found: $encoder" }
 
 foreach ($csv in Get-ChildItem $csvDir -Filter *.csv) {
-    $lang = $csv.BaseName
-    # the encoder writes next to its input, so work on a copy outside the repo
-    $work = Join-Path $tmpDir $csv.Name
-    Copy-Item $csv.FullName $work -Force
-    & $encoder --encode $work --id-space $IdSpace
+    $out = Join-Path $outDir "$($csv.BaseName).w3strings"
+    & $encoder --id-space $IdSpace $csv.FullName $out
     if ($LASTEXITCODE -ne 0) { throw "encoding failed for $($csv.Name)" }
-    Copy-Item "$work.w3strings" (Join-Path $outDir "$lang.w3strings") -Force
-    Write-Host "$lang.w3strings built"
+    Write-Host "$($csv.BaseName).w3strings built"
 }
