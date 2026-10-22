@@ -2,21 +2,21 @@
 ; id      |key(hex)|key(str)| text
 ;
 ; Skill Tree Loadouts - francais. UTF-8 sans BOM. Generer avec tools\build-strings.ps1
-; {0} {1} {2} sont remplis par le script.
+; $0$ $1$ $2$ sont remplis par le script.
 ;
-2117351000|        |stl_preset_name|Preset {0}
+2117351000|        |stl_preset_name|Preset $0$
 2117351001|        |stl_previous_build|Build précédent
-2117351002|        |stl_levels_not_bought|{0} niveau(x) de compétence n'ont pas pu être rachetés :
+2117351002|        |stl_levels_not_bought|$0$ niveau(x) de compétence n'ont pas pu être rachetés :
 2117351003|        |stl_mutation_failed|La mutation n'a pas pu être équipée
-2117351004|        |stl_slots_restored|Compétences équipées : {0} / {1}
-2117351005|        |stl_mutagens_missing|{0} mutagène(s) manquant(s)
-2117351006|        |stl_free_points|Points de compétence disponibles : {0}
-2117351007|        |stl_slots_count|Compétences équipées : {0}
-2117351008|        |stl_mutagens_count|Mutagènes : {0}
-2117351009|        |stl_bad_index|Le numéro du preset doit être entre 1 et {0}
-2117351010|        |stl_empty|{0} est vide
-2117351011|        |stl_loaded|{0} chargé
-2117351012|        |stl_saved|{0} sauvegardé ({1} compétences, {2} points)
+2117351004|        |stl_slots_restored|Compétences équipées : $0$ / $1$
+2117351005|        |stl_mutagens_missing|$0$ mutagène(s) manquant(s)
+2117351006|        |stl_free_points|Points de compétence disponibles : $0$
+2117351007|        |stl_slots_count|Compétences équipées : $0$
+2117351008|        |stl_mutagens_count|Mutagènes : $0$
+2117351009|        |stl_bad_index|Le numéro du preset doit être entre 1 et $0$
+2117351010|        |stl_empty|$0$ est vide
+2117351011|        |stl_loaded|$0$ chargé
+2117351012|        |stl_saved|$0$ sauvegardé ($1$ compétences, $2$ points)
 2117351013|        |stl_reset_done|Arbre de compétences réinitialisé
-2117351014|        |stl_tree_skills|Compétences de l'arbre : {0}
-2117351015|        |stl_cost|Coût : {0} / {1} points
+2117351014|        |stl_tree_skills|Compétences de l'arbre : $0$
+2117351015|        |stl_cost|Coût : $0$ / $1$ points

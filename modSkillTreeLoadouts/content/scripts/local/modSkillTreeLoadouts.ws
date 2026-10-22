@@ -59,7 +59,7 @@ class CStlData
 		{
 			return StlLoc( "stl_previous_build", "Previous build" );
 		}
-		return StlLocF( "stl_preset_name", "Preset {0}", IntToString( idx + 1 ) );
+		return StlLocF( "stl_preset_name", "Preset $0$", IntToString( idx + 1 ) );
 	}
 }
 
@@ -461,15 +461,16 @@ function StlLoc( key : string, fallback : string ) : string
 	return s;
 }
 
-// StlLoc with {0}, {1}, {2} replaced by the given values
+// StlLoc with $0$, $1$, $2$ replaced by the given values. Same "$X$" style as the game's own
+// strings: with {0} markers the game dropped the spaces around them.
 function StlLocF( key : string, fallback : string, optional a : string, optional b : string, optional c : string ) : string
 {
 	var s : string;
 
 	s = StlLoc( key, fallback );
-	s = StrReplaceAll( s, "{0}", a );
-	s = StrReplaceAll( s, "{1}", b );
-	s = StrReplaceAll( s, "{2}", c );
+	s = StrReplaceAll( s, "$0$", a );
+	s = StrReplaceAll( s, "$1$", b );
+	s = StrReplaceAll( s, "$2$", c );
 	return s;
 }
 
@@ -503,7 +504,7 @@ function StlReportText( report : SStlLoadReport ) : string
 
 	if ( report.missingLevels > 0 )
 	{
-		msg += "<br>" + StlLocF( "stl_levels_not_bought", "{0} skill level(s) could not be bought:",
+		msg += "<br>" + StlLocF( "stl_levels_not_bought", "$0$ skill level(s) could not be bought:",
 			IntToString( report.missingLevels ) );
 		for ( i = 0; i < report.failedSkills.Size() && i < 6; i += 1 )
 		{
@@ -518,29 +519,29 @@ function StlReportText( report : SStlLoadReport ) : string
 	{
 		msg += "<br>" + StlLoc( "stl_mutation_failed", "Mutation could not be equipped" );
 	}
-	msg += "<br>" + StlLocF( "stl_slots_restored", "Slotted skills: {0} / {1}",
+	msg += "<br>" + StlLocF( "stl_slots_restored", "Slotted skills: $0$ / $1$",
 		IntToString( report.savedSlots - report.missingSlots ), IntToString( report.savedSlots ) );
 	if ( report.missingMutagens > 0 )
 	{
-		msg += "<br>" + StlLocF( "stl_mutagens_missing", "{0} mutagen(s) missing",
+		msg += "<br>" + StlLocF( "stl_mutagens_missing", "$0$ mutagen(s) missing",
 			IntToString( report.missingMutagens ) );
 	}
-	msg += "<br>" + StlLocF( "stl_free_points", "Free skill points: {0}", IntToString( report.pointsLeft ) );
+	msg += "<br>" + StlLocF( "stl_free_points", "Free skill points: $0$", IntToString( report.pointsLeft ) );
 	return msg;
 }
 
 // "Slotted skills: N" + "Mutagens: N" lines of a preset
 function StlPresetSummary( p : CStlPreset ) : string
 {
-	return "<br>" + StlLocF( "stl_slots_count", "Slotted skills: {0}", IntToString( p.slotIds.Size() ) )
-		+ "<br>" + StlLocF( "stl_mutagens_count", "Mutagens: {0}", IntToString( p.mutagenSlots.Size() ) );
+	return "<br>" + StlLocF( "stl_slots_count", "Slotted skills: $0$", IntToString( p.slotIds.Size() ) )
+		+ "<br>" + StlLocF( "stl_mutagens_count", "Mutagens: $0$", IntToString( p.mutagenSlots.Size() ) );
 }
 
 function StlValidIndex( n : int ) : bool
 {
 	if ( n < 1 || n > StlPresetCount() )
 	{
-		StlNotify( StlLocF( "stl_bad_index", "Preset number must be 1..{0}", IntToString( StlPresetCount() ) ) );
+		StlNotify( StlLocF( "stl_bad_index", "Preset number must be 1..$0$", IntToString( StlPresetCount() ) ) );
 		return false;
 	}
 	return true;
@@ -559,11 +560,11 @@ function StlLoadAndNotify( idx : int )
 	}
 	if ( !w.StlLoad( idx, report ) )
 	{
-		StlNotify( StlLocF( "stl_empty", "{0} is empty", w.StlGetData().DisplayName( idx ) ) );
+		StlNotify( StlLocF( "stl_empty", "$0$ is empty", w.StlGetData().DisplayName( idx ) ) );
 		return;
 	}
 	StlRefreshCharacterMenu();
-	StlNotify( StlLocF( "stl_loaded", "{0} loaded", w.StlGetData().DisplayName( idx ) ) + StlReportText( report ) );
+	StlNotify( StlLocF( "stl_loaded", "$0$ loaded", w.StlGetData().DisplayName( idx ) ) + StlReportText( report ) );
 }
 
 // ---- debug console ----
@@ -586,7 +587,7 @@ exec function stl_save( n : int )
 	if ( w.StlSave( n - 1 ) )
 	{
 		p = w.StlGetData().Get( n - 1 );
-		StlNotify( StlLocF( "stl_saved", "{0} saved ({1} skills, {2} points)", w.StlGetData().DisplayName( n - 1 ),
+		StlNotify( StlLocF( "stl_saved", "$0$ saved ($1$ skills, $2$ points)", w.StlGetData().DisplayName( n - 1 ),
 			IntToString( p.treeSkills.Size() ), IntToString( w.StlPresetCost( p ) ) )
 			+ StlPresetSummary( p ) );
 	}
@@ -613,7 +614,7 @@ exec function stl_reset()
 	}
 	StlRefreshCharacterMenu();
 	StlNotify( StlLoc( "stl_reset_done", "Skill tree reset" ) + "<br>"
-		+ StlLocF( "stl_free_points", "Free skill points: {0}", IntToString( w.levelManager.GetPointsFree( ESkillPoint ) ) ) );
+		+ StlLocF( "stl_free_points", "Free skill points: $0$", IntToString( w.levelManager.GetPointsFree( ESkillPoint ) ) ) );
 }
 
 // reloads the build that was active before the last stl_load / stl_reset
@@ -650,12 +651,12 @@ exec function stl_info( n : int )
 	p = w.StlGetData().Get( n - 1 );
 	if ( !p.used )
 	{
-		StlNotify( StlLocF( "stl_empty", "{0} is empty", w.StlGetData().DisplayName( n - 1 ) ) );
+		StlNotify( StlLocF( "stl_empty", "$0$ is empty", w.StlGetData().DisplayName( n - 1 ) ) );
 		return;
 	}
 	available = w.StlTreePointsAvailable();
 	StlNotify( w.StlGetData().DisplayName( n - 1 )
-		+ "<br>" + StlLocF( "stl_tree_skills", "Tree skills: {0}", IntToString( p.treeSkills.Size() ) )
-		+ "<br>" + StlLocF( "stl_cost", "Cost: {0} / {1} points", IntToString( w.StlPresetCost( p ) ), IntToString( available ) )
+		+ "<br>" + StlLocF( "stl_tree_skills", "Tree skills: $0$", IntToString( p.treeSkills.Size() ) )
+		+ "<br>" + StlLocF( "stl_cost", "Cost: $0$ / $1$ points", IntToString( w.StlPresetCost( p ) ), IntToString( available ) )
 		+ StlPresetSummary( p ) );
 }
