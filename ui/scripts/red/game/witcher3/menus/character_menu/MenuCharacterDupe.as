@@ -191,10 +191,9 @@ package red.game.witcher3.menus.character_menu
          dispatchEvent(new GameEvent(GameEvent.REGISTER,"character.paperdoll.changed",[this.onPaperdollChanged]));
          dispatchEvent(new GameEvent(GameEvent.REGISTER,"character.mutations.list",[this.setMutationDataList]));
          dispatchEvent(new GameEvent(GameEvent.REGISTER,"character.mutation",[this.setSingleMutationData]));
-         // Skill Tree Loadouts: preset bar, filled by the script once it knows the bar exists
+         // Skill Tree Loadouts: preset bar, filled by the script on OnStlUiReady (sent after OnConfigUI)
          this.stlCreateBar();
          dispatchEvent(new GameEvent(GameEvent.REGISTER,"character.stl.presets",[this.stlSetPresets]));
-         dispatchEvent(new GameEvent(GameEvent.CALL,"OnStlUiReady",[]));
          if(!Extensions.isScaleform)
          {
             this.initDebugData();
@@ -219,6 +218,8 @@ package red.game.witcher3.menus.character_menu
          _contextMgr.saveScaleValue = true;
          currentModuleIdx = 1;
          dispatchEvent(new GameEvent(GameEvent.CALL,"OnConfigUI"));
+         // the script side can only send data once its OnConfigUI set up m_flashValueStorage
+         dispatchEvent(new GameEvent(GameEvent.CALL,"OnStlUiReady",[]));
          if(this._btn_switch_sections == -1 && InputManager.getInstance().gamepadType != EInputDeviceType.IDT_Switch2_Mouser)
          {
             this._btn_switch_sections = InputFeedbackManager.appendButton(this,NavigationCode.GAMEPAD_R3,-1,"panel_button_common_jump_sections");
