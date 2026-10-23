@@ -5,7 +5,7 @@
     Mod = @{
         Name        = 'modSkillTreeLoadouts'     # folder under <GameDir>\Mods
         DisplayName = 'Skill Tree Loadouts'
-        Version     = '1.1.0'
+        Version     = '1.1.1'
     }
 
     Strings = @{

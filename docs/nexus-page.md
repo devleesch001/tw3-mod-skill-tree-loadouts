@@ -5,13 +5,14 @@ Fields to fill when creating the mod page, then the description to paste (BBCode
 | Field | Value |
 |---|---|
 | Name | Skill Tree Loadouts |
-| Version | 1.1.0 (1.0.0: English and French only) |
+| Version | 1.1.1 (1.0.0: English and French only) |
 | Category | Gameplay / Skills (or Utilities) |
 | Summary (short) | Save your whole skill tree, slots, mutagens and mutation as a loadout and switch builds in one click, with your own skill points only. |
 | Tags | Remastered Compatible, Skills, Gameplay, User Interface |
 | Requirements | none (game version 5.x Remastered) |
 | File | `release/SkillTreeLoadouts-<version>.zip` (built by `.\cli.ps1 package`) |
 | Changelog 1.1.0 | All 18 game languages; button labels shrink to fit long texts and names. |
+| Changelog 1.1.1 | The loadout bar sits under the slot grid in use, so it no longer overlaps the mutation slots. |
 
 Nexus mod id: **14755** (page https://www.nexusmods.com/witcher3/mods/14755). It is also the
 text id space (`Strings.IdSpace` in `stl.config.psd1`), so the mod's string ids
