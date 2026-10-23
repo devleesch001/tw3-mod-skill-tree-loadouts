@@ -59,3 +59,5 @@ try {
     Write-Host "error: $($_.Exception.Message)" -ForegroundColor Red
     exit 1
 }
+# success: never pass on the last native tool's code (git diff --no-index exits 1 on differences)
+exit 0
