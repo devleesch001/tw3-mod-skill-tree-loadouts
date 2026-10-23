@@ -126,7 +126,7 @@ function Invoke-StlDoctor($Cfg) {
         if (-not $item) { Write-StlCheck WARN 'Mod link' "not linked yet: run '.\cli.ps1 link'" }
         elseif ($item.LinkType -eq 'Junction' -and $item.Target -contains $Cfg.Paths.ModDist) { Write-StlCheck OK 'Mod link' "$link -> dist" }
         elseif ($item.LinkType -eq 'Junction') { Write-StlCheck WARN 'Mod link' "points to $($item.Target): run '.\cli.ps1 link'" }
-        else { Write-StlCheck FAIL 'Mod link' "$link is a real folder, not a junction: move it away"; $fails++ }
+        else { Write-StlCheck WARN 'Mod link' "$link is an installed copy, not the dev link: move it away before '.\cli.ps1 link'" }
     }
     if (Test-StlFileLocked (Join-Path $Cfg.Paths.ModDist 'content\blob0.bundle')) {
         Write-StlCheck WARN 'Mod bundle' 'in use by the game: the UI cannot be rebuilt until it is closed'
