@@ -29,14 +29,44 @@ function Invoke-StlWcc($Tc, [string[]]$WccArgs) {
     }
 }
 
-# .ws files are used as-is: the game compiles them at startup
+# .ws files are used as-is: the game compiles them at startup. The options file goes with them
+# (dist\bin\config\...), since the scripts read it.
 function Build-StlScripts($Cfg) {
+    $files = Get-StlScriptFiles $Cfg
     $out = Join-Path (Get-StlContentDir $Cfg) 'scripts\local'
     if (Test-Path $out) { Remove-Item $out -Recurse -Force }
     New-Item -ItemType Directory -Force $out | Out-Null
-    $files = Get-ChildItem (Join-Path $Cfg.Paths.Src 'scripts') -Filter *.ws
     $files | Copy-Item -Destination $out
-    Write-Host "scripts: $($files.Count) file(s)"
+    New-Item -ItemType Directory -Force (Split-Path $Cfg.Paths.OptionsDist) | Out-Null
+    Copy-Item $Cfg.Paths.OptionsSrc $Cfg.Paths.OptionsDist -Force
+    Write-Host "scripts: $($files.Count) file(s) + options $($Cfg.Options.File)"
+}
+
+# Compiles the game's scripts plus the mod's with REDkit's wcc_lite, as the game does at
+# startup, without starting it. Throws with the compiler errors.
+function Test-StlScripts($Cfg, $Tc) {
+    Assert-StlTool 'REDkit wcc_lite' $Tc.Wcc
+    $vanilla = Join-Path $Tc.GameDir 'content\content0\scripts'
+    if (-not (Test-Path $vanilla)) { throw "check: the game's scripts are missing ($vanilla)" }
+    $root = Join-Path $Cfg.Paths.Stage 'check'
+    $dir = Join-Path $root 'scripts'
+    Remove-Item $root -Recurse -Force -ErrorAction SilentlyContinue
+    New-Item -ItemType Directory -Force (Join-Path $dir 'local') | Out-Null
+    Copy-Item (Join-Path $vanilla '*') $dir -Recurse
+    Get-StlScriptFiles $Cfg | Copy-Item -Destination (Join-Path $dir 'local')
+    Push-Location $Tc.WccDir
+    try {
+        $log = & .\wcc_lite.exe compilescripts $dir "-out=$(Join-Path $root 'out')" 2>&1 | ForEach-Object { "$_" }
+        $code = $LASTEXITCODE
+    } finally {
+        Pop-Location
+    }
+    if ($code -ne 0) {
+        # compiler errors, and warnings about the mod's own files (the game's have hundreds)
+        $log | Where-Object { $_ -match '\]\[Error\]\[WCC\]|\]\[Warning\]\[WCC\] local\\' } | Select-Object -First 30 | Write-Host
+        throw "check: the scripts do not compile (wcc_lite exit $code)"
+    }
+    Write-Host "check: the scripts compile with the game's"
 }
 
 # first string id of the id space: 211nnnn000 (4 digits) or 21nnnnn000 (5 digits)
@@ -98,7 +128,23 @@ function Build-StlStrings($Cfg, $Tc) {
         $log = & $Tc.W3Strings --id-space $Cfg.Strings.IdSpace $csv $target 2>&1 | ForEach-Object { "$_" }
         if ($LASTEXITCODE -ne 0) { $log | Write-Host; throw "strings: encoding $lang.csv failed" }
     }
+    Set-Content -Path (Join-Path $Cfg.Paths.Build 'strings.stamp') -Value (Get-StlStringsStamp $Cfg) -Encoding ASCII
     Write-Host "strings: $($Cfg.Strings.Languages -join ', ')"
+}
+
+# SHA-256 of some lines of text
+function Get-StlHash([string[]]$Parts) {
+    $sha = [Security.Cryptography.SHA256]::Create()
+    [BitConverter]::ToString($sha.ComputeHash([Text.Encoding]::UTF8.GetBytes($Parts -join "`n"))) -replace '-', ''
+}
+
+# fingerprint of everything the strings are built from
+function Get-StlStringsStamp($Cfg) {
+    $parts = @("$($Cfg.Strings.IdSpace)|$($Cfg.Strings.Languages -join ',')")
+    foreach ($lang in $Cfg.Strings.Languages) {
+        $parts += "$lang=$((Get-FileHash (Join-Path $Cfg.Paths.Src "strings\$lang.csv")).Hash)"
+    }
+    Get-StlHash $parts
 }
 
 # ---- UI: the game's skills screen with our ActionScript compiled in ----
@@ -227,8 +273,13 @@ function Get-StlUiStamp($Cfg, $Files) {
     $parts = @("$($Cfg.Ui.Bundle)|$($Cfg.Ui.Swf)")
     foreach ($f in $Files | Sort-Object Rel) { $parts += "$($f.Rel)=$((Get-FileHash $f.Path).Hash)" }
     $parts += (Get-FileHash (Join-Path $PSScriptRoot 'cr2w_swf.py')).Hash
-    $sha = [Security.Cryptography.SHA256]::Create()
-    [BitConverter]::ToString($sha.ComputeHash([Text.Encoding]::UTF8.GetBytes($parts -join "`n"))) -replace '-', ''
+    Get-StlHash $parts
+}
+
+# fingerprint of the UI sources as they are now (also refreshes src/ui patches from work/ui)
+function Get-StlCurrentUiStamp($Cfg, $Tc) {
+    $movie = Get-StlOriginalMovie $Cfg $Tc (Get-StlOriginalSwf $Cfg $Tc)
+    Get-StlUiStamp $Cfg @(Sync-StlUiSources $Cfg $Tc $movie)
 }
 
 # -> blob0.bundle + metadata.store

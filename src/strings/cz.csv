@@ -30,3 +30,6 @@
 2117351023|        |stl_confirm_undo_title|Vrátit poslední změnu?
 2117351024|        |stl_confirm_undo_text|Návrat k buildu, který jste měli před posledním načtením sady nebo resetem.
 2117351025|        |stl_nothing_to_undo|Není co vrátit
+2117351026|        |stl_pages_removed|Stránky slotů 2 až 5 odstraněny, sundáno dovedností: $0$. Ulož hru a pak mod odinstaluj.
+2117351027|        |stl_option_group|Skill Tree Loadouts
+2117351028|        |stl_option_pages|Stránky slotů dovedností

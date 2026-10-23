@@ -30,3 +30,6 @@
 2117351023|        |stl_confirm_undo_title|Visszavonod az utolsó változtatást?
 2117351024|        |stl_confirm_undo_text|Visszatérés ahhoz a buildhez, amely az utolsó betöltés vagy visszaállítás előtt volt.
 2117351025|        |stl_nothing_to_undo|Nincs mit visszavonni
+2117351026|        |stl_pages_removed|A 2–5. foglalatoldalak eltávolítva, levett képességek: $0$. Mentsd el a játékot, majd távolítsd el a modot.
+2117351027|        |stl_option_group|Skill Tree Loadouts
+2117351028|        |stl_option_pages|Képességfoglalat-oldalak

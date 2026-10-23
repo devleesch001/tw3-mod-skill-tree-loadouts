@@ -18,6 +18,7 @@ Extract the archive into the game folder (the one that contains `bin`, `content`
 or install it with Vortex. You should get:
 
     Mods\modSkillTreeLoadouts\
+    bin\config\r4game\user_config_matrix\pc\modSkillTreeLoadouts.xml   (the mod's option)
 
 Works on new games and existing saves.
 
@@ -52,6 +53,22 @@ The active loadout has a gold border. Empty loadouts are greyed out.
 If something cannot be restored (not enough points, a mutagen no longer in your inventory...),
 a notification lists it. Loading, saving and resetting are blocked during combat.
 
+### Skill slot pages (option)
+
+The **Skill slot pages** option, in the game's Options menu, goes from 1 (default: the game's
+slots only) to 5. From 2, **pages of skill slots** are added, with buttons above the equipped
+skills to switch the page shown. **Every page is active at once**: a skill works whichever
+page it is on. The option applies when the skills screen opens.
+
+- Pages 2 to 5 have 12 skill slots each. They unlock **one per skill point** once page 1 is
+  full: page 2 slot 1 one point after the last slot of page 1, then slot 2, and so on up to
+  page 5. They are **not linked to the mutagens**: only page 1 gives mutagen bonuses.
+- The 4 Blood and Wine mutation slots are not paged: every page shows the game's own 4,
+  with the game's rules.
+- A loadout saves and restores every page.
+- Lowering the option removes the last pages and unequips their skills.
+- The legacy skill tree option shows page 1 only (the other pages stay active).
+
 ### Debug console (optional)
 
 With the debug console enabled, the same actions are available as commands:
@@ -62,6 +79,7 @@ With the debug console enabled, the same actions are available as commands:
     stl_undo()              go back to the previous build
     stl_info(1)             cost of loadout 1 and points available
     stl_name(1, "Signs")    rename loadout 1
+    stl_pages_remove()      empty and remove pages 2 to 5 (before uninstalling)
 
 ## Compatibility
 
@@ -71,6 +89,8 @@ With the debug console enabled, the same actions are available as commands:
   debug console.
 - The legacy skill tree option does not show the bar yet (console commands work).
 - Mouse and keyboard only for the bar: no gamepad support yet.
+- Slot pages: **incompatible** with other mods that add skill slots (for example
+  *More Skill Slots*, *Extra Skill Slots*); the pages then stay off.
 - Mods that heavily change the skill rules may prevent a loadout from being rebuilt in full;
   the mod never spends points the game would not let you spend.
 
@@ -95,8 +115,15 @@ CD PROJEKT S.A.
 
 ## Uninstallation
 
-Delete `Mods\modSkillTreeLoadouts`. Your loadouts are stored in your saves; without the mod
-the game ignores them. Your current build stays as it is.
+Delete `Mods\modSkillTreeLoadouts` and
+`bin\config\r4game\user_config_matrix\pc\modSkillTreeLoadouts.xml`. Your loadouts are stored
+in your saves; without the mod the game ignores them. Your current build stays as it is.
+
+**If you used slot pages**: the extra slots are kept in your save, and a skill left in them
+would stay active without being shown. First set the option back to 1 and open the skills
+screen (or run `stl_pages_remove()` in the debug console), save the game, then delete the
+files. If the mod was removed without that, the skills left on pages 2 to 5 still show as
+equipped in the tree: drag each one onto a slot of the normal grid, then remove it.
 
 ---
 
@@ -107,3 +134,8 @@ propres points uniquement. Barre sous les compétences équipées : **clic** = c
 **maintenir** = sauvegarder, **clic droit** = renommer, **Réinitialiser** et **Annuler**.
 Installation : extraire l'archive dans le dossier du jeu. Incompatible avec les mods qui
 remplacent l'écran des compétences (par exemple *Skill Slots Presets*).
+
+Option **Pages d'emplacements** (menu Options, 1 à 5) : jusqu'à 5 pages d'emplacements,
+toutes actives, boutons au-dessus des compétences équipées ; seule la page 1 est liée aux
+mutagènes. Avant de désinstaller, remettez l'option à 1 et ouvrez l'écran des compétences
+(ou tapez `stl_pages_remove()` dans la console), sauvegardez, puis supprimez les fichiers.

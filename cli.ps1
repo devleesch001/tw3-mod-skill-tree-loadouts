@@ -5,6 +5,7 @@
 .DESCRIPTION
   .\cli.ps1 doctor             check the toolchain and the game install
   .\cli.ps1 build [target]     build src/ into dist/  (target: all, scripts, strings, ui)
+  .\cli.ps1 check              compile the scripts with the game's, as at game start (REDkit wcc_lite)
   .\cli.ps1 link               junction <GameDir>\Mods\<mod> -> dist\Mods\<mod>
   .\cli.ps1 unlink             remove that junction
   .\cli.ps1 run                build all + link + start the game
@@ -36,6 +37,7 @@ try {
     switch ($Command) {
         'doctor'  { if (-not (Invoke-StlDoctor $cfg)) { exit 1 } }
         'build'   { Invoke-StlBuild $cfg $Target -Force:$Force }
+        'check'   { Test-StlScripts $cfg (Resolve-StlToolchain $cfg) }
         'link'    { Set-StlLink $cfg }
         'unlink'  { Remove-StlLink $cfg }
         'run'     {

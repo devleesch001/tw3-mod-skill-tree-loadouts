@@ -30,3 +30,6 @@
 2117351023|        |stl_confirm_undo_title|Annuler le dernier changement ?
 2117351024|        |stl_confirm_undo_text|Revenir au build que vous aviez avant le dernier chargement de preset ou la dernière réinitialisation.
 2117351025|        |stl_nothing_to_undo|Rien à annuler
+2117351026|        |stl_pages_removed|Pages d'emplacements 2 à 5 supprimées, $0$ compétence(s) retirée(s). Sauvegardez, puis désinstallez le mod.
+2117351027|        |stl_option_group|Skill Tree Loadouts
+2117351028|        |stl_option_pages|Pages d'emplacements de compétences

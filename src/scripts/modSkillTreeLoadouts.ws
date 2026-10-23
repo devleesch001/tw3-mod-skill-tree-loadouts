@@ -413,15 +413,19 @@ function StlUsingLegacyTree() : bool
 // The skills screen caches what it shows; after a change made outside of it (console),
 // redraw it the same way it redraws itself after buying or equipping a skill.
 
+// the screen draws slots 1..12 and the mutation slots 13..16 (BSS_SkillSlot1..4)
+function StlShownSlotCount() : int
+{
+	return 16;
+}
+
 @addMethod(CR4CharacterDupeMenu) function StlRefresh()
 {
-	var slots : array< SSkillSlot >;
 	var i : int;
 
-	slots = thePlayer.GetSkillSlots();
-	for ( i = 0; i < slots.Size(); i += 1 )
+	for ( i = 1; i <= StlShownSlotCount(); i += 1 )
 	{
-		m_fxClearSkillSlot.InvokeSelfOneArg( FlashArgInt( slots[ i ].id ) );
+		m_fxClearSkillSlot.InvokeSelfOneArg( FlashArgInt( i ) );
 	}
 	UpdateData( true );
 	UpdateMasterMutation();
@@ -429,13 +433,11 @@ function StlUsingLegacyTree() : bool
 
 @addMethod(CR4CharacterMenu) function StlRefresh()
 {
-	var slots : array< SSkillSlot >;
 	var i : int;
 
-	slots = thePlayer.GetSkillSlots();
-	for ( i = 0; i < slots.Size(); i += 1 )
+	for ( i = 1; i <= StlShownSlotCount(); i += 1 )
 	{
-		m_fxClearSkillSlot.InvokeSelfOneArg( FlashArgInt( slots[ i ].id ) );
+		m_fxClearSkillSlot.InvokeSelfOneArg( FlashArgInt( i ) );
 	}
 	UpdateData( true );
 	UpdateMasterMutation();
@@ -512,6 +514,82 @@ var stlPopup : CStlConfirmPopup;
 @addMethod(CR4CharacterDupeMenu) event OnStlUiReady()
 {
 	StlSendPresets();
+	StlSendPages();
+}
+
+// ---- skill slot pages ----
+// modSkillTreeLoadoutsPages.ws adds the slot pages of the "Slot pages" option and sets
+// stlPageCount; with 1 page (or 0: pages off) the screen shows no page buttons.
+
+@addField(W3PlayerAbilityManager)
+var stlPageCount : int;
+
+// page number while the skills screen reads the slots of one page (0 = all real slots)
+@addField(W3PlayerAbilityManager)
+var stlViewPage : int;
+
+// page shown in the skills screen, 1-based (not saved: page 1 after loading)
+@addField(W3PlayerWitcher)
+var stlPage : int;
+
+function StlPageCount() : int
+{
+	var w : W3PlayerWitcher;
+	var pam : W3PlayerAbilityManager;
+
+	w = GetWitcherPlayer();
+	if ( !w )
+	{
+		return 0;
+	}
+	pam = (W3PlayerAbilityManager)w.abilityManager;
+	if ( !pam )
+	{
+		return 0;
+	}
+	return pam.stlPageCount;
+}
+
+function StlCurrentPage() : int
+{
+	var w : W3PlayerWitcher;
+
+	w = GetWitcherPlayer();
+	if ( !w || w.stlPage < 1 || w.stlPage > StlPageCount() )
+	{
+		return 1;
+	}
+	return w.stlPage;
+}
+
+// "character.stl.pages" = { count, current }; no buttons when count < 2
+@addMethod(CR4CharacterDupeMenu) function StlSendPages()
+{
+	var obj : CScriptedFlashObject;
+
+	obj = m_flashValueStorage.CreateTempFlashObject();
+	obj.SetMemberFlashInt( "count", StlPageCount() );
+	obj.SetMemberFlashInt( "current", StlCurrentPage() );
+	m_flashValueStorage.SetFlashObject( "character.stl.pages", obj );
+}
+
+// page button clicked
+@addMethod(CR4CharacterDupeMenu) event OnStlPageSelect( page : int )
+{
+	var w : W3PlayerWitcher;
+
+	if ( page < 1 || page > StlPageCount() )
+	{
+		return false;
+	}
+	w = GetWitcherPlayer();
+	if ( w.stlPage != page )
+	{
+		w.stlPage = page;
+		OnPlaySoundEvent( "gui_global_switch" );
+		StlRefresh();
+	}
+	StlSendPages();
 }
 
 // preset button clicked: ask before rebuying the tree

@@ -30,3 +30,6 @@
 2117351023|        |stl_confirm_undo_title|Cofnąć ostatnią zmianę?
 2117351024|        |stl_confirm_undo_text|Powrót do buildu sprzed ostatniego wczytania zestawu lub resetu.
 2117351025|        |stl_nothing_to_undo|Nie ma czego cofnąć
+2117351026|        |stl_pages_removed|Usunięto strony gniazd od 2 do 5, zdjęto umiejętności: $0$. Zapisz grę, a następnie odinstaluj moda.
+2117351027|        |stl_option_group|Skill Tree Loadouts
+2117351028|        |stl_option_pages|Strony gniazd umiejętności

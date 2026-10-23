@@ -30,3 +30,6 @@
 2117351023|        |stl_confirm_undo_title|Letzte Änderung rückgängig machen?
 2117351024|        |stl_confirm_undo_text|Zurück zu dem Build, den du vor dem letzten Laden oder Zurücksetzen hattest.
 2117351025|        |stl_nothing_to_undo|Nichts rückgängig zu machen
+2117351026|        |stl_pages_removed|Platzseiten 2 bis 5 entfernt, $0$ Fähigkeit(en) abgelegt. Speichere das Spiel und deinstalliere dann die Mod.
+2117351027|        |stl_option_group|Skill Tree Loadouts
+2117351028|        |stl_option_pages|Seiten mit Fähigkeitsplätzen

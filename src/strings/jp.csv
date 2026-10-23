@@ -30,3 +30,6 @@
 2117351023|        |stl_confirm_undo_title|最後の変更を元に戻しますか？
 2117351024|        |stl_confirm_undo_text|最後のプリセットのロードまたはリセットの前のビルドに戻ります。
 2117351025|        |stl_nothing_to_undo|元に戻す操作はありません
+2117351026|        |stl_pages_removed|スロットページ2～5を削除し、スキルを$0$個外しました。セーブしてからMODをアンインストールしてください。
+2117351027|        |stl_option_group|Skill Tree Loadouts
+2117351028|        |stl_option_pages|スキルスロットのページ数

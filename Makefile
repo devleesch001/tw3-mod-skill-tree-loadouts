@@ -3,7 +3,7 @@
 
 CLI := powershell -NoProfile -ExecutionPolicy Bypass -File cli.ps1
 
-.PHONY: all build scripts strings ui link unlink run package clean distclean doctor help
+.PHONY: all build scripts strings ui check link unlink run package clean distclean doctor help
 
 all: build
 
@@ -13,7 +13,7 @@ build:
 scripts strings ui:
 	$(CLI) build $@
 
-link unlink run package clean doctor help:
+check link unlink run package clean doctor help:
 	$(CLI) $@
 
 distclean:

@@ -30,3 +30,6 @@
 2117351023|        |stl_confirm_undo_title|復原上一次變更？
 2117351024|        |stl_confirm_undo_text|回到上一次載入預設或重置之前的配置。
 2117351025|        |stl_nothing_to_undo|沒有可復原的動作
+2117351026|        |stl_pages_removed|已移除欄位第 2 至 5 頁，卸下 $0$ 個技能。請先存檔，再解除安裝模組。
+2117351027|        |stl_option_group|Skill Tree Loadouts
+2117351028|        |stl_option_pages|技能欄位頁數

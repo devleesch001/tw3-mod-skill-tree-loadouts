@@ -30,10 +30,18 @@ function Get-StlConfig([string]$Root) {
         Cache    = Join-Path $work 'cache'       # files extracted from the game (kept by 'clean')
         Build    = Join-Path $work 'build'       # intermediates and stamps
         Release  = Join-Path $Root 'release'
+        # options file: in src/config, and where dist/ and the game have it
+        OptionsSrc  = Join-Path $Root "src\config\$($cfg.Options.File)"
+        OptionsDist = Join-Path $dist "$($cfg.Options.Dir)\$($cfg.Options.File)"
         # wcc_lite does not accept spaces in its arguments: its staging lives under %TEMP%
         Stage    = Join-Path $env:TEMP 'stl-build'
     }
     $cfg
+}
+
+# the .ws files the mod ships
+function Get-StlScriptFiles($Cfg) {
+    @(Get-ChildItem (Join-Path $Cfg.Paths.Src 'scripts') -Filter *.ws -ErrorAction Stop)
 }
 
 # Steam install folder of an app, from every Steam library; $Probe must exist inside it

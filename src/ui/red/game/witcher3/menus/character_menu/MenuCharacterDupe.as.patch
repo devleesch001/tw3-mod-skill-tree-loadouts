@@ -1,5 +1,5 @@
 diff --git a/red/game/witcher3/menus/character_menu/MenuCharacterDupe.as b/red/game/witcher3/menus/character_menu/MenuCharacterDupe.as
-index aec61c6..eea940c 100644
+index aec61c6..8d9538d 100644
 --- a/red/game/witcher3/menus/character_menu/MenuCharacterDupe.as
 +++ b/red/game/witcher3/menus/character_menu/MenuCharacterDupe.as
 @@ -5,11 +5,16 @@ package red.game.witcher3.menus.character_menu
@@ -30,7 +30,7 @@ index aec61c6..eea940c 100644
     
     [SWF(width="1920", height="1080", backgroundColor="#000000", frameRate="40")]
     public class MenuCharacterDupe extends CoreMenu
-@@ -97,7 +104,62 @@ package red.game.witcher3.menus.character_menu
+@@ -97,7 +104,82 @@ package red.game.witcher3.menus.character_menu
        private var _btn_right_tab:int = -1;
        
        private var _isMutationInited:Boolean = false;
@@ -91,10 +91,30 @@ index aec61c6..eea940c 100644
 +
 +      private var _stlRenameText:String = "";
 +
++      // slot page buttons (Pages edition): one per page, above the slot grid
++      private const STL_PAGE_W:Number = 44;
++
++      private const STL_PAGE_H:Number = 36;
++
++      // the page row never goes above this line; it moves under the preset bar instead
++      private const STL_TOP_LIMIT:Number = 90;
++
++      private var _stlPagesBar:Sprite;
++
++      private var _stlPageButtons:Array = [];
++
++      private var _stlPageLabels:Array = [];
++
++      private var _stlPageCount:int = 0;
++
++      private var _stlPage:int = 1;
++
++      private var _stlPageHover:int = -1;
++
        public function MenuCharacterDupe()
        {
           super();
-@@ -158,6 +220,10 @@ package red.game.witcher3.menus.character_menu
+@@ -158,6 +240,11 @@ package red.game.witcher3.menus.character_menu
           dispatchEvent(new GameEvent(GameEvent.REGISTER,"character.paperdoll.changed",[this.onPaperdollChanged]));
           dispatchEvent(new GameEvent(GameEvent.REGISTER,"character.mutations.list",[this.setMutationDataList]));
           dispatchEvent(new GameEvent(GameEvent.REGISTER,"character.mutation",[this.setSingleMutationData]));
@@ -102,10 +122,11 @@ index aec61c6..eea940c 100644
 +         this.stlCreateBar();
 +         dispatchEvent(new GameEvent(GameEvent.REGISTER,"character.stl.presets",[this.stlSetPresets]));
 +         dispatchEvent(new GameEvent(GameEvent.REGISTER,"character.stl.actions",[this.stlSetActions]));
++         dispatchEvent(new GameEvent(GameEvent.REGISTER,"character.stl.pages",[this.stlSetPages]));
           if(!Extensions.isScaleform)
           {
              this.initDebugData();
-@@ -182,6 +248,8 @@ package red.game.witcher3.menus.character_menu
+@@ -182,6 +269,8 @@ package red.game.witcher3.menus.character_menu
           _contextMgr.saveScaleValue = true;
           currentModuleIdx = 1;
           dispatchEvent(new GameEvent(GameEvent.CALL,"OnConfigUI"));
@@ -114,7 +135,7 @@ index aec61c6..eea940c 100644
           if(this._btn_switch_sections == -1 && InputManager.getInstance().gamepadType != EInputDeviceType.IDT_Switch2_Mouser)
           {
              this._btn_switch_sections = InputFeedbackManager.appendButton(this,NavigationCode.GAMEPAD_R3,-1,"panel_button_common_jump_sections");
-@@ -297,6 +365,11 @@ package red.game.witcher3.menus.character_menu
+@@ -297,6 +386,11 @@ package red.game.witcher3.menus.character_menu
                    this.moduleSkillSlot.additionalSkillsMode = true;
                 }
              }
@@ -126,23 +147,25 @@ index aec61c6..eea940c 100644
           }
        }
        
-@@ -581,6 +654,7 @@ package red.game.witcher3.menus.character_menu
+@@ -581,6 +675,8 @@ package red.game.witcher3.menus.character_menu
              this.mcPointIcon.visible = false;
              this.mcPointsBorder.visible = false;
              this.mcRunewordIcon.visible = false;
 +            this._stlBar.visible = false;
++            this._stlPagesBar.visible = false;
              this.btnMutationMode.visible = false;
              this.mcMutationPanel.visible = true;
              this.mcMutationPanel.alpha = 0;
-@@ -613,6 +687,7 @@ package red.game.witcher3.menus.character_menu
+@@ -613,6 +709,8 @@ package red.game.witcher3.menus.character_menu
           this.mcPointIcon.visible = true;
           this.mcRunewordIcon.alpha = 1;
           this.txfAvailablePoints.alpha = 1;
 +         this._stlBar.visible = true;
++         this._stlPagesBar.visible = this._stlPageCount > 1;
        }
        
        protected function showFullStats() : void
-@@ -920,7 +995,364 @@ package red.game.witcher3.menus.character_menu
+@@ -920,7 +1018,492 @@ package red.game.witcher3.menus.character_menu
           this.txfAvailablePoints.text = CommonUtils.toUpperCaseSafe(this.txfAvailablePoints.text);
           this.txfAvailablePoints.x = this.txfPointsValue.x + this.txfPointsValue.width - this.txfPointsValue.textWidth - this.POINTS_AVAILABLE_GAP - this.txfAvailablePoints.width;
        }
@@ -197,6 +220,9 @@ index aec61c6..eea940c 100644
 +            this._stlLabels.push(label);
 +         }
 +         addChild(this._stlBar);
++         this._stlPagesBar = new Sprite();
++         this._stlPagesBar.visible = false;
++         addChild(this._stlPagesBar);
 +         this.stlLayout();
 +         this.stlRedrawAll();
 +      }
@@ -215,6 +241,7 @@ index aec61c6..eea940c 100644
 +         barY = Math.min(barY,this.STL_BOTTOM_LIMIT - this.STL_BTN_H);
 +         this._stlBar.x = Math.round(slots.x + (slots.width - total) / 2);
 +         this._stlBar.y = Math.round(barY);
++         this.stlLayoutPages(slots);
 +      }
 +
 +      public function stlSetPresets(value:Array) : void
@@ -227,6 +254,130 @@ index aec61c6..eea940c 100644
 +      {
 +         this._stlActions = value ? value : [];
 +         this.stlRedrawAll();
++      }
++
++      // ---- Skill Tree Loadouts: slot pages (Pages edition) ----
++      // "character.stl.pages" = { count, current }: one button per page, click =
++      // OnStlPageSelect(page); the script then sends the slots of that page. No buttons when
++      // count < 2 (normal edition).
++
++      public function stlSetPages(value:Object) : void
++      {
++         var count:int = Boolean(value) ? int(value.count) : 0;
++         var i:int = 0;
++         var btn:Sprite = null;
++         var label:TextField = null;
++         var fmt:TextFormat = null;
++         this._stlPage = Boolean(value) ? int(value.current) : 1;
++         if(count != this._stlPageCount)
++         {
++            this._stlPageCount = count;
++            while(this._stlPagesBar.numChildren > 0)
++            {
++               this._stlPagesBar.removeChildAt(0);
++            }
++            this._stlPageButtons = [];
++            this._stlPageLabels = [];
++            fmt = this.txfAvailablePoints.getTextFormat();
++            fmt.size = this.STL_FONT_SIZE;
++            fmt.align = TextFormatAlign.CENTER;
++            for(i = 0; i < count && count > 1; i++)
++            {
++               btn = new Sprite();
++               btn.name = "stlPage" + (i + 1);
++               btn.x = i * (this.STL_PAGE_W + this.STL_BTN_GAP);
++               btn.buttonMode = true;
++               btn.mouseChildren = false;
++               label = new TextField();
++               label.embedFonts = this.txfAvailablePoints.embedFonts;
++               label.defaultTextFormat = fmt;
++               label.selectable = false;
++               label.mouseEnabled = false;
++               label.width = this.STL_PAGE_W;
++               label.height = 30;
++               label.y = (this.STL_PAGE_H - label.height) / 2;
++               label.text = String(i + 1);
++               btn.addChild(label);
++               // on press, like the preset buttons
++               btn.addEventListener(MouseEvent.MOUSE_DOWN,this.stlOnPageClick,false,0,true);
++               btn.addEventListener(MouseEvent.ROLL_OVER,this.stlOnPageRollOver,false,0,true);
++               btn.addEventListener(MouseEvent.ROLL_OUT,this.stlOnPageRollOut,false,0,true);
++               this._stlPagesBar.addChild(btn);
++               this._stlPageButtons.push(btn);
++               this._stlPageLabels.push(label);
++            }
++         }
++         this._stlPagesBar.visible = this._stlPageCount > 1 && this._stlBar.visible;
++         this.stlLayout();
++         this.stlRedrawPages();
++      }
++
++      // centred above the slot grid in use, or under the preset bar when there is no room
++      private function stlLayoutPages(slots:Rectangle) : void
++      {
++         var total:Number = 0;
++         var rowY:Number = 0;
++         if(!this._stlPagesBar || this._stlPageButtons.length == 0)
++         {
++            return;
++         }
++         total = this._stlPageButtons.length * (this.STL_PAGE_W + this.STL_BTN_GAP) - this.STL_BTN_GAP;
++         rowY = slots.y - this.STL_GRID_GAP - this.STL_PAGE_H;
++         if(rowY < this.STL_TOP_LIMIT)
++         {
++            rowY = this._stlBar.y + this.STL_BTN_H + this.STL_GRID_GAP;
++         }
++         this._stlPagesBar.x = Math.round(slots.x + (slots.width - total) / 2);
++         this._stlPagesBar.y = Math.round(rowY);
++      }
++
++      private function stlRedrawPages() : void
++      {
++         var i:int = 0;
++         var btn:Sprite = null;
++         var label:TextField = null;
++         var active:Boolean = false;
++         var hover:Boolean = false;
++         for(i = 0; i < this._stlPageButtons.length; i++)
++         {
++            btn = this._stlPageButtons[i] as Sprite;
++            label = this._stlPageLabels[i] as TextField;
++            active = i + 1 == this._stlPage;
++            hover = i == this._stlPageHover;
++            btn.graphics.clear();
++            btn.graphics.lineStyle(active ? 2 : 1,active ? 0xD9B45A : (hover ? 0xBFA36A : 0x6B5F48),1);
++            btn.graphics.beginFill(hover ? 0x2A241A : 0x000000,hover ? 0.8 : 0.55);
++            btn.graphics.drawRect(0,0,this.STL_PAGE_W,this.STL_PAGE_H);
++            btn.graphics.endFill();
++            label.textColor = active ? 0xFFFFFF : 0xB4B4B4;
++         }
++      }
++
++      private function stlOnPageClick(event:MouseEvent) : void
++      {
++         var idx:int = this._stlPageButtons.indexOf(event.currentTarget);
++         var eventEx:MouseEventEx = event as MouseEventEx;
++         if(Boolean(eventEx) && eventEx.buttonIdx == MouseEventEx.RIGHT_BUTTON)
++         {
++            return;
++         }
++         if(idx >= 0 && idx + 1 != this._stlPage && this._stlRenameIdx < 0)
++         {
++            // int(): a computed value reaches the script as a float, read there as int bits
++            dispatchEvent(new GameEvent(GameEvent.CALL,"OnStlPageSelect",[int(idx + 1)]));
++         }
++      }
++
++      private function stlOnPageRollOver(event:MouseEvent) : void
++      {
++         this._stlPageHover = this._stlPageButtons.indexOf(event.currentTarget);
++         this.stlRedrawPages();
++      }
++
++      private function stlOnPageRollOut(event:MouseEvent) : void
++      {
++         this._stlPageHover = -1;
++         this.stlRedrawPages();
 +      }
 +
 +      private function stlRedrawAll() : void

@@ -30,3 +30,6 @@
 2117351023|        |stl_confirm_undo_title|Son değişiklik geri alınsın mı?
 2117351024|        |stl_confirm_undo_text|Son ön ayar yüklemesinden veya sıfırlamadan önceki yapınıza dönün.
 2117351025|        |stl_nothing_to_undo|Geri alınacak bir şey yok
+2117351026|        |stl_pages_removed|2-5 arası yuva sayfaları kaldırıldı, çıkarılan yetenek: $0$. Oyunu kaydedin, ardından modu kaldırın.
+2117351027|        |stl_option_group|Skill Tree Loadouts
+2117351028|        |stl_option_pages|Yetenek yuvası sayfaları

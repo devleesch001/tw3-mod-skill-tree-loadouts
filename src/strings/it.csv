@@ -30,3 +30,6 @@
 2117351023|        |stl_confirm_undo_title|Annullare l'ultima modifica?
 2117351024|        |stl_confirm_undo_text|Torna alla build che avevi prima dell'ultimo caricamento o azzeramento.
 2117351025|        |stl_nothing_to_undo|Niente da annullare
+2117351026|        |stl_pages_removed|Pagine di slot da 2 a 5 rimosse, $0$ abilità rimossa/e. Salva la partita, poi disinstalla la mod.
+2117351027|        |stl_option_group|Skill Tree Loadouts
+2117351028|        |stl_option_pages|Pagine di slot abilità

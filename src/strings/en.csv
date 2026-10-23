@@ -30,3 +30,6 @@
 2117351023|        |stl_confirm_undo_title|Undo the last change?
 2117351024|        |stl_confirm_undo_text|Go back to the build you had before the last preset load or reset.
 2117351025|        |stl_nothing_to_undo|Nothing to undo
+2117351026|        |stl_pages_removed|Slot pages 2 to 5 removed, $0$ skill(s) unequipped. Save the game, then uninstall the mod.
+2117351027|        |stl_option_group|Skill Tree Loadouts
+2117351028|        |stl_option_pages|Skill slot pages

@@ -13,6 +13,14 @@ Dans l'écran des compétences, une barre sous les emplacements équipés :
 Traduit dans les 18 langues du jeu. Aucun fichier de script du jeu n'est remplacé
 (annotations `@addMethod` / `@wrapMethod`), pas besoin de Script Merger.
 
+Option **Pages d'emplacements** (menu Options du jeu, 1 à 5, 1 par défaut) : à partir de 2,
+des pages d'emplacements s'ajoutent, toutes actives en même temps, choisies par des boutons
+au-dessus des emplacements. Une fois la page 1 complète, les emplacements des pages suivantes
+se débloquent un par point de compétence, dans l'ordre, sans lien avec les mutagènes. Les 4
+emplacements de mutation de Blood and Wine ne sont pas paginés : chaque page affiche ceux du
+jeu. Les presets sauvegardent toutes les pages.
+Baisser l'option retire les dernières pages et leurs compétences.
+
 Le guide joueur (installation, utilisation, compatibilité) est dans
 [`src/release/README.md`](src/release/README.md), livré avec le mod.
 
@@ -20,6 +28,7 @@ Le guide joueur (installation, utilisation, compatibilité) est dans
 
 ```
 src/scripts/   le mod en WitcherScript (.ws, utilisé tel quel par le jeu)
+src/config/    l'option du mod (XML du menu Options, installé dans bin\config\...)
 src/strings/   les textes, un CSV par langue (en.csv = référence)
 src/ui/        nos modifications de l'écran des compétences (ActionScript 3), en patch
 work/ui/       les classes complètes à éditer (générées, non versionnées)
@@ -37,10 +46,17 @@ Tout passe par `cli.ps1` (PowerShell 5.1+). Le `Makefile` n'est qu'une façade
 |---|---|
 | `.\cli.ps1 doctor` | vérifie la chaîne d'outils et l'installation du jeu |
 | `.\cli.ps1 build [scripts\|strings\|ui\|all]` | construit `src/` dans `dist/` (`ui` seulement si un `.as` a changé, `-Force` pour forcer) |
+| `.\cli.ps1 check` | compile les scripts avec ceux du jeu (wcc_lite de REDkit), comme au lancement du jeu, sans le lancer |
 | `.\cli.ps1 link` / `unlink` | branche / débranche `dist/` dans le dossier `Mods` du jeu (jonction) |
 | `.\cli.ps1 run` | build + link + lance le jeu |
-| `.\cli.ps1 package` | crée `release/SkillTreeLoadouts-<version>.zip`, à extraire dans le dossier du jeu |
+| `.\cli.ps1 package` | crée `release/<édition>-<version>.zip`, à extraire dans le dossier du jeu |
 | `.\cli.ps1 clean [-All]` | supprime `dist/` et les fichiers intermédiaires |
+
+`package` refuse si le zip existe déjà (`-Force` pour le remplacer), si les scripts ou
+l'option de `dist/` diffèrent de `src/`, si les textes ou l'interface ont changé depuis leur
+dernier build, ou si les scripts ne compilent pas (`check`). `link` copie aussi le fichier
+d'option dans le dossier du jeu (une jonction ne peut pas viser un fichier), `unlink` le
+retire s'il n'a pas été modifié.
 
 Réglages : [`stl.config.psd1`](stl.config.psd1) (version, langues, outils). Un
 `stl.local.psd1` facultatif, non versionné, surcharge les chemins propres à une machine.

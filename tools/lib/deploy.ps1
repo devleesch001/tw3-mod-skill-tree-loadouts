@@ -9,21 +9,47 @@ function Set-StlLink($Cfg) {
     $item = Get-Item $link -ErrorAction SilentlyContinue
     if ($item) {
         if ($item.LinkType -ne 'Junction') { throw "$link is a real folder, not a junction: move it away first" }
-        if ($item.Target -contains $Cfg.Paths.ModDist) { Write-Host "link: $link -> dist (ok)"; return }
+        if ($item.Target -contains $Cfg.Paths.ModDist) {
+            Write-Host "link: $link -> dist (ok)"
+            Install-StlOptions $Cfg $tc
+            return
+        }
         cmd /c rmdir "$link"    # removes the junction only, never its target
     }
     New-Item -ItemType Junction -Path $link -Target $Cfg.Paths.ModDist | Out-Null
     Write-Host "link: $link -> $($Cfg.Paths.ModDist)"
+    Install-StlOptions $Cfg $tc
+}
+
+# The options file lives in the game's bin folder, outside Mods: it is copied there (a junction
+# cannot point at a file, and dist is on another drive than the game for a hard link).
+function Install-StlOptions($Cfg, $Tc) {
+    $target = Join-Path $Tc.GameDir "$($Cfg.Options.Dir)\$($Cfg.Options.File)"
+    if (-not (Test-Path $Cfg.Paths.OptionsDist)) { Write-Host "link: no options file in dist yet, run '.\cli.ps1 build scripts'"; return }
+    if ((Test-Path $target) -and (Get-FileHash $target).Hash -eq (Get-FileHash $Cfg.Paths.OptionsDist).Hash) {
+        Write-Host "link: options $target (ok)"
+        return
+    }
+    Copy-Item $Cfg.Paths.OptionsDist $target -Force
+    Write-Host "link: options copied to $target (the game reads it at startup)"
 }
 
 function Remove-StlLink($Cfg) {
     $tc = Resolve-StlToolchain $Cfg
     $link = Join-Path $tc.GameDir "Mods\$($Cfg.Mod.Name)"
     $item = Get-Item $link -ErrorAction SilentlyContinue
-    if (-not $item) { Write-Host 'unlink: nothing to remove'; return }
-    if ($item.LinkType -ne 'Junction') { throw "$link is a real folder, not a junction: left untouched" }
-    cmd /c rmdir "$link"
-    Write-Host "unlink: $link removed"
+    if (-not $item) { Write-Host 'unlink: no mod link' }
+    elseif ($item.LinkType -ne 'Junction') { throw "$link is a real folder, not a junction: left untouched" }
+    else { cmd /c rmdir "$link"; Write-Host "unlink: $link removed" }
+    # the options file only when it is the one 'link' copied
+    $target = Join-Path $tc.GameDir "$($Cfg.Options.Dir)\$($Cfg.Options.File)"
+    if (-not (Test-Path $target)) { return }
+    if ((Test-Path $Cfg.Paths.OptionsDist) -and (Get-FileHash $target).Hash -eq (Get-FileHash $Cfg.Paths.OptionsDist).Hash) {
+        Remove-Item $target
+        Write-Host "unlink: $target removed"
+    } else {
+        Write-Host "unlink: $target differs from dist, left untouched" -ForegroundColor Yellow
+    }
 }
 
 function Start-StlGame($Cfg) {
@@ -89,6 +115,25 @@ function New-StlPackage($Cfg, [switch]$Force) {
     foreach ($f in 'blob0.bundle', 'metadata.store') {
         if (-not (Test-Path (Join-Path $keep $f))) { throw "package: no built UI bundle in work\build\ui, run '.\cli.ps1 build ui -Force' (game closed) once" }
     }
+    # the strings and the UI bundle must have been built from the sources as they are now
+    $tc = Resolve-StlToolchain $Cfg
+    $checks = @(
+        @{ What = 'strings'; Stamp = 'strings.stamp'; Now = (Get-StlStringsStamp $Cfg); Fix = "'.\cli.ps1 build strings'" },
+        @{ What = 'UI'; Stamp = 'ui.stamp'; Now = (Get-StlCurrentUiStamp $Cfg $tc); Fix = "'.\cli.ps1 build ui' (game closed)" }
+    )
+    foreach ($c in $checks) {
+        $file = Join-Path $Cfg.Paths.Build $c.Stamp
+        if (-not (Test-Path $file) -or (Get-Content $file -Raw).Trim() -ne $c.Now) {
+            throw "package: the $($c.What) sources changed since the last build, run $($c.Fix) first"
+        }
+    }
+    # scripts and options file in dist must be the ones of src, unchanged
+    $expected = @(@(Get-StlScriptFiles $Cfg) + @(Get-Item $Cfg.Paths.OptionsSrc) | ForEach-Object { "$($_.Name)=$((Get-FileHash $_.FullName).Hash)" } | Sort-Object)
+    $actual = @(@(Get-ChildItem (Join-Path $content 'scripts\local') -Filter *.ws) + @(Get-Item $Cfg.Paths.OptionsDist -ErrorAction SilentlyContinue) | ForEach-Object { "$($_.Name)=$((Get-FileHash $_.FullName).Hash)" } | Sort-Object)
+    if (Compare-Object $expected $actual) {
+        throw "package: the scripts or options file in dist differ from src, run '.\cli.ps1 build scripts' first"
+    }
+    Test-StlScripts $Cfg $tc
     # the player README and the license ship inside the mod folder, as other mods do
     Copy-Item (Join-Path $Cfg.Paths.Src 'release\README.md') (Join-Path $Cfg.Paths.ModDist 'README.md') -Force
     foreach ($f in 'LICENSE', 'LICENSE-EXCEPTION') {
@@ -101,15 +146,15 @@ function New-StlPackage($Cfg, [switch]$Force) {
     Add-Type -AssemblyName System.IO.Compression, System.IO.Compression.FileSystem
     # only what build and package put in dist: dist is linked into the game's Mods folder, so
     # other tools (Vortex backups, ...) can drop files there
-    $shipped = '^(README\.md|LICENSE|LICENSE-EXCEPTION|content/(blob0\.bundle|metadata\.store|[a-z]+\.w3strings|scripts/local/[^/]+\.ws))$'
+    $modDir = [regex]::Escape("Mods/$($Cfg.Mod.Name)")
+    $optionsRel = "$($Cfg.Options.Dir)\$($Cfg.Options.File)" -replace '\\', '/'
+    $options = [regex]::Escape($optionsRel)
+    $shipped = "^($modDir/(README\.md|LICENSE|LICENSE-EXCEPTION|content/(blob0\.bundle|metadata\.store|[a-z]+\.w3strings|scripts/local/[^/]+\.ws))|$options)$"
     $files = @()
     $skipped = @()
     foreach ($file in Get-ChildItem $Cfg.Paths.Dist -Recurse -File) {
-        $rel = ''
-        if ($file.FullName.StartsWith($Cfg.Paths.ModDist + '\')) {
-            $rel = $file.FullName.Substring($Cfg.Paths.ModDist.Length + 1) -replace '\\', '/'
-        }
-        if ($rel -match $shipped) { $files += $file } else { $skipped += $file.FullName.Substring($Cfg.Paths.Dist.Length + 1) }
+        $rel = $file.FullName.Substring($Cfg.Paths.Dist.Length + 1) -replace '\\', '/'
+        if ($rel -match $shipped) { $files += $file } else { $skipped += $rel }
     }
     if ($skipped) {
         Write-Host "package: $($skipped.Count) file(s) in dist not built by the CLI, left out of the zip:" -ForegroundColor Yellow

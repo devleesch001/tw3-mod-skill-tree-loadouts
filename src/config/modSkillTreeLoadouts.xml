@@ -1,0 +1,11 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<!-- Skill Tree Loadouts: mod options, read by the scripts with
+     theGame.GetInGameConfigWrapper().GetVarValue( 'SkillTreeLoadouts', <Var id> ) -->
+<UserConfig>
+	<Group id="SkillTreeLoadouts" displayName="stl_option_group" tags="customDisplayName">
+		<VisibleVars>
+			<!-- pages of skill slots, all active at once; 1 = the game's slots only -->
+			<Var id="StlSlotPages" displayName="stl_option_pages" displayType="SLIDER;1;5;4" tags="customDisplayName"/>
+		</VisibleVars>
+	</Group>
+</UserConfig>

@@ -5,7 +5,14 @@
     Mod = @{
         Name        = 'modSkillTreeLoadouts'     # folder under <GameDir>\Mods
         DisplayName = 'Skill Tree Loadouts'
-        Version     = '1.1.1'
+        Version     = '1.2.0'
+    }
+
+    # the mod's options in the game's Options menu: src/config/<File>, installed as
+    # <GameDir>\<Dir>\<File> (the game reads every .xml of that folder)
+    Options = @{
+        Dir  = 'bin\config\r4game\user_config_matrix\pc'
+        File = 'modSkillTreeLoadouts.xml'
     }
 
     Strings = @{

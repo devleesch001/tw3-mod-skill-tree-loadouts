@@ -30,3 +30,6 @@
 2117351023|        |stl_confirm_undo_title|마지막 변경을 취소하시겠습니까?
 2117351024|        |stl_confirm_undo_text|마지막 프리셋 불러오기 또는 초기화 이전의 빌드로 돌아갑니다.
 2117351025|        |stl_nothing_to_undo|취소할 작업이 없습니다
+2117351026|        |stl_pages_removed|슬롯 페이지 2~5를 제거하고 스킬 $0$개를 해제했습니다. 게임을 저장한 뒤 모드를 제거하세요.
+2117351027|        |stl_option_group|Skill Tree Loadouts
+2117351028|        |stl_option_pages|스킬 슬롯 페이지

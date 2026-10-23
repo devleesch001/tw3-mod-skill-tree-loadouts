@@ -30,3 +30,6 @@
 2117351023|        |stl_confirm_undo_title|Desfazer a última alteração?
 2117351024|        |stl_confirm_undo_text|Voltar ao build que você tinha antes do último carregamento ou redefinição.
 2117351025|        |stl_nothing_to_undo|Nada para desfazer
+2117351026|        |stl_pages_removed|Páginas de espaços 2 a 5 removidas, $0$ habilidade(s) desequipada(s). Salve o jogo e depois desinstale o mod.
+2117351027|        |stl_option_group|Skill Tree Loadouts
+2117351028|        |stl_option_pages|Páginas de espaços de habilidade
