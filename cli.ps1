@@ -12,7 +12,8 @@
   .\cli.ps1 clean              delete dist/ and build intermediates (-All: also the game files cache)
   .\cli.ps1 help
 
-  -Force    rebuild the UI bundle even if its sources did not change
+  -Force    build: rebuild the UI bundle even if its sources did not change
+            package: replace the zip of this version if it already exists
   -NoBuild  'run' only links and starts the game
 
   Settings: stl.config.psd1 (versioned) and stl.local.psd1 (this machine, optional).
@@ -42,7 +43,7 @@ try {
             Set-StlLink $cfg
             Start-StlGame $cfg
         }
-        'package' { New-StlPackage $cfg }
+        'package' { New-StlPackage $cfg -Force:$Force }
         'clean'   {
             if (Test-StlFileLocked (Join-Path $cfg.Paths.ModDist 'content\blob0.bundle')) { throw 'clean: the game is using dist/; quit it first' }
             Clear-StlOutputs $cfg -All:$All

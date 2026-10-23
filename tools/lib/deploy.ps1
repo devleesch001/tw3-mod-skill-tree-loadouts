@@ -33,10 +33,54 @@ function Start-StlGame($Cfg) {
     Write-Host 'run: game started (script compile errors are shown at startup)'
 }
 
+# file:line that sets Mod.Version (stl.local.psd1 wins over stl.config.psd1, as in Get-StlConfig)
+function Get-StlVersionSource($Cfg) {
+    foreach ($file in $Cfg.LocalFile, (Join-Path $Cfg.Paths.Root 'stl.config.psd1')) {
+        if (-not $file -or -not (Test-Path $file)) { continue }
+        $hit = Select-String -Path $file -Pattern '^\s*Version\s*=' | Select-Object -First 1
+        if ($hit) { return "$(Split-Path $file -Leaf):$($hit.LineNumber)" }
+    }
+    'stl.config.psd1 (Mod.Version)'
+}
+
+# version tags (vX.Y.Z) on the current commit
+function Get-StlHeadTags($Cfg) {
+    if (-not (Get-Command git -ErrorAction SilentlyContinue)) { return @() }
+    $ErrorActionPreference = 'Continue'
+    @(& git -C $Cfg.Paths.Root tag --points-at HEAD 2>$null | Where-Object { $_ -match '^v\d' })
+}
+
+# which version the zip gets, where it is set, and whether the git tag agrees
+function Show-StlVersionInfo($Cfg, [string]$Zip) {
+    $version = $Cfg.Mod.Version
+    $source = Get-StlVersionSource $Cfg
+    $tags = Get-StlHeadTags $Cfg
+    Write-Host "  version used : $version  (set in $source)"
+    Write-Host "  git tag      : $(if ($tags) { $tags -join ', ' } else { 'none on the current commit' })"
+    if ($tags -and $tags -notcontains "v$version") {
+        Write-Host "  mismatch     : the commit is tagged $($tags -join ', ') but the version is $version" -ForegroundColor Yellow
+    }
+    if ($Zip -and (Test-Path $Zip)) {
+        Write-Host "  existing zip : $Zip ($((Get-Item $Zip).LastWriteTime))"
+    }
+    Write-Host "  new version  : change Version in $source, then run '.\cli.ps1 package' again"
+}
+
 # zip of dist/, laid out like the game folder: extract it into <GameDir>.
 # The running game keeps dist's bundle open, so the bundle files come from the copy that
-# 'build ui' keeps in work/build/ui.
-function New-StlPackage($Cfg) {
+# 'build ui' keeps in work/build/ui. An existing zip of the same version is only replaced with -Force.
+function New-StlPackage($Cfg, [switch]$Force) {
+    $zip = Join-Path $Cfg.Paths.Release ("{0}-{1}.zip" -f ($Cfg.Mod.DisplayName -replace '\s', ''), $Cfg.Mod.Version)
+    if ((Test-Path $zip) -and -not $Force) {
+        Write-Host "package: $(Split-Path $zip -Leaf) already exists" -ForegroundColor Yellow
+        Show-StlVersionInfo $Cfg $zip
+        throw "package: zip left untouched; use -Force to replace it"
+    }
+    $tags = Get-StlHeadTags $Cfg
+    if ($tags -and $tags -notcontains "v$($Cfg.Mod.Version)") {
+        Write-Host "package: the git tag does not match the version" -ForegroundColor Yellow
+        Show-StlVersionInfo $Cfg $null
+    }
     $content = Join-Path $Cfg.Paths.ModDist 'content'
     $keep = Join-Path $Cfg.Paths.Build 'ui'
     foreach ($f in 'scripts\local', 'en.w3strings') {
@@ -51,14 +95,29 @@ function New-StlPackage($Cfg) {
         Copy-Item (Join-Path $Cfg.Paths.Root $f) (Join-Path $Cfg.Paths.ModDist $f) -Force
     }
     New-Item -ItemType Directory -Force $Cfg.Paths.Release | Out-Null
-    $zip = Join-Path $Cfg.Paths.Release ("{0}-{1}.zip" -f ($Cfg.Mod.DisplayName -replace '\s', ''), $Cfg.Mod.Version)
     Remove-Item $zip -ErrorAction SilentlyContinue
     # entries use '/' as the zip format requires (Compress-Archive in PowerShell 5.1 writes '\',
     # which some extractors turn into flat file names)
     Add-Type -AssemblyName System.IO.Compression, System.IO.Compression.FileSystem
+    # only what build and package put in dist: dist is linked into the game's Mods folder, so
+    # other tools (Vortex backups, ...) can drop files there
+    $shipped = '^(README\.md|LICENSE|LICENSE-EXCEPTION|content/(blob0\.bundle|metadata\.store|[a-z]+\.w3strings|scripts/local/[^/]+\.ws))$'
+    $files = @()
+    $skipped = @()
+    foreach ($file in Get-ChildItem $Cfg.Paths.Dist -Recurse -File) {
+        $rel = ''
+        if ($file.FullName.StartsWith($Cfg.Paths.ModDist + '\')) {
+            $rel = $file.FullName.Substring($Cfg.Paths.ModDist.Length + 1) -replace '\\', '/'
+        }
+        if ($rel -match $shipped) { $files += $file } else { $skipped += $file.FullName.Substring($Cfg.Paths.Dist.Length + 1) }
+    }
+    if ($skipped) {
+        Write-Host "package: $($skipped.Count) file(s) in dist not built by the CLI, left out of the zip:" -ForegroundColor Yellow
+        $skipped | ForEach-Object { Write-Host "  $_" }
+    }
     $archive = [IO.Compression.ZipFile]::Open($zip, [IO.Compression.ZipArchiveMode]::Create)
     try {
-        foreach ($file in Get-ChildItem $Cfg.Paths.Dist -Recurse -File) {
+        foreach ($file in $files) {
             $entry = $file.FullName.Substring($Cfg.Paths.Dist.Length + 1) -replace '\\', '/'
             $source = $file.FullName
             if ($file.DirectoryName -eq $content -and $file.Name -in 'blob0.bundle', 'metadata.store') {
