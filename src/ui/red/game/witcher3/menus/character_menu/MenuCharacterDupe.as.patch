@@ -1,5 +1,5 @@
 diff --git a/red/game/witcher3/menus/character_menu/MenuCharacterDupe.as b/red/game/witcher3/menus/character_menu/MenuCharacterDupe.as
-index aec61c6..ed179bc 100644
+index aec61c6..eea940c 100644
 --- a/red/game/witcher3/menus/character_menu/MenuCharacterDupe.as
 +++ b/red/game/witcher3/menus/character_menu/MenuCharacterDupe.as
 @@ -5,11 +5,16 @@ package red.game.witcher3.menus.character_menu
@@ -30,7 +30,7 @@ index aec61c6..ed179bc 100644
     
     [SWF(width="1920", height="1080", backgroundColor="#000000", frameRate="40")]
     public class MenuCharacterDupe extends CoreMenu
-@@ -97,7 +104,57 @@ package red.game.witcher3.menus.character_menu
+@@ -97,7 +104,62 @@ package red.game.witcher3.menus.character_menu
        private var _btn_right_tab:int = -1;
        
        private var _isMutationInited:Boolean = false;
@@ -56,6 +56,11 @@ index aec61c6..ed179bc 100644
 +      private const STL_BTN_GAP:Number = 8;
 +
 +      private const STL_GROUP_GAP:Number = 20;
++
++      // space kept under the slot grid, and lowest y the bar may reach (help bar below it)
++      private const STL_GRID_GAP:Number = 8;
++
++      private const STL_BOTTOM_LIMIT:Number = 1020;
 +
 +      private const STL_FONT_SIZE:int = 20;
 +
@@ -89,7 +94,7 @@ index aec61c6..ed179bc 100644
        public function MenuCharacterDupe()
        {
           super();
-@@ -158,6 +215,10 @@ package red.game.witcher3.menus.character_menu
+@@ -158,6 +220,10 @@ package red.game.witcher3.menus.character_menu
           dispatchEvent(new GameEvent(GameEvent.REGISTER,"character.paperdoll.changed",[this.onPaperdollChanged]));
           dispatchEvent(new GameEvent(GameEvent.REGISTER,"character.mutations.list",[this.setMutationDataList]));
           dispatchEvent(new GameEvent(GameEvent.REGISTER,"character.mutation",[this.setSingleMutationData]));
@@ -100,7 +105,7 @@ index aec61c6..ed179bc 100644
           if(!Extensions.isScaleform)
           {
              this.initDebugData();
-@@ -182,6 +243,8 @@ package red.game.witcher3.menus.character_menu
+@@ -182,6 +248,8 @@ package red.game.witcher3.menus.character_menu
           _contextMgr.saveScaleValue = true;
           currentModuleIdx = 1;
           dispatchEvent(new GameEvent(GameEvent.CALL,"OnConfigUI"));
@@ -109,7 +114,19 @@ index aec61c6..ed179bc 100644
           if(this._btn_switch_sections == -1 && InputManager.getInstance().gamepadType != EInputDeviceType.IDT_Switch2_Mouser)
           {
              this._btn_switch_sections = InputFeedbackManager.appendButton(this,NavigationCode.GAMEPAD_R3,-1,"panel_button_common_jump_sections");
-@@ -581,6 +644,7 @@ package red.game.witcher3.menus.character_menu
+@@ -297,6 +365,11 @@ package red.game.witcher3.menus.character_menu
+                   this.moduleSkillSlot.additionalSkillsMode = true;
+                }
+             }
++            // Skill Tree Loadouts: the slot grid may have switched to its mutation layout
++            if(this._stlBar)
++            {
++               this.stlLayout();
++            }
+          }
+       }
+       
+@@ -581,6 +654,7 @@ package red.game.witcher3.menus.character_menu
              this.mcPointIcon.visible = false;
              this.mcPointsBorder.visible = false;
              this.mcRunewordIcon.visible = false;
@@ -117,7 +134,7 @@ index aec61c6..ed179bc 100644
              this.btnMutationMode.visible = false;
              this.mcMutationPanel.visible = true;
              this.mcMutationPanel.alpha = 0;
-@@ -613,6 +677,7 @@ package red.game.witcher3.menus.character_menu
+@@ -613,6 +687,7 @@ package red.game.witcher3.menus.character_menu
           this.mcPointIcon.visible = true;
           this.mcRunewordIcon.alpha = 1;
           this.txfAvailablePoints.alpha = 1;
@@ -125,7 +142,7 @@ index aec61c6..ed179bc 100644
        }
        
        protected function showFullStats() : void
-@@ -920,7 +985,357 @@ package red.game.witcher3.menus.character_menu
+@@ -920,7 +995,364 @@ package red.game.witcher3.menus.character_menu
           this.txfAvailablePoints.text = CommonUtils.toUpperCaseSafe(this.txfAvailablePoints.text);
           this.txfAvailablePoints.x = this.txfPointsValue.x + this.txfPointsValue.width - this.txfPointsValue.textWidth - this.POINTS_AVAILABLE_GAP - this.txfAvailablePoints.width;
        }
@@ -184,14 +201,20 @@ index aec61c6..ed179bc 100644
 +         this.stlRedrawAll();
 +      }
 +
-+      // centred under the equipped skill slots, on the "available points" line
++      // Centred under the slot grid in use, on the "available points" line, or just below the
++      // grid when a mutation is equipped (its extra row goes lower), never past the help bar.
++      // The grid is the active container: the module's own bounds also count the hidden one.
 +      private function stlLayout() : void
 +      {
-+         var slots:Rectangle = this.moduleSkillSlot.getBounds(this);
++         var grid:MovieClip = this.moduleSkillSlot.mutationMode ? this.moduleSkillSlot.mcSlotsMutation : this.moduleSkillSlot.mcSlotsNormal;
++         var slots:Rectangle = (grid ? grid : this.moduleSkillSlot).getBounds(this);
 +         var last:Sprite = this._stlButtons[this.STL_UNDO] as Sprite;
 +         var total:Number = last.x + this.STL_ACTION_W;
++         var barY:Number = this.txfAvailablePoints.y + (this.txfAvailablePoints.height - this.STL_BTN_H) / 2;
++         barY = Math.max(barY,slots.y + slots.height + this.STL_GRID_GAP);
++         barY = Math.min(barY,this.STL_BOTTOM_LIMIT - this.STL_BTN_H);
 +         this._stlBar.x = Math.round(slots.x + (slots.width - total) / 2);
-+         this._stlBar.y = Math.round(this.txfAvailablePoints.y + (this.txfAvailablePoints.height - this.STL_BTN_H) / 2);
++         this._stlBar.y = Math.round(barY);
 +      }
 +
 +      public function stlSetPresets(value:Array) : void
@@ -209,6 +232,7 @@ index aec61c6..ed179bc 100644
 +      private function stlRedrawAll() : void
 +      {
 +         var i:int = 0;
++         this.stlLayout();
 +         for(i = 0; i < this._stlButtons.length; i++)
 +         {
 +            this.stlRedraw(i);
