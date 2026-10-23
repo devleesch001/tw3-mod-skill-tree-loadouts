@@ -1,0 +1,485 @@
+diff --git a/red/game/witcher3/menus/character_menu/MenuCharacterDupe.as b/red/game/witcher3/menus/character_menu/MenuCharacterDupe.as
+index aec61c6..ed179bc 100644
+--- a/red/game/witcher3/menus/character_menu/MenuCharacterDupe.as
++++ b/red/game/witcher3/menus/character_menu/MenuCharacterDupe.as
+@@ -5,11 +5,16 @@ package red.game.witcher3.menus.character_menu
+    import com.gskinner.motion.easing.Sine;
+    import flash.display.DisplayObject;
+    import flash.display.MovieClip;
++   import flash.display.Sprite;
+    import flash.events.Event;
+    import flash.events.MouseEvent;
+    import flash.geom.Point;
++   import flash.geom.Rectangle;
+    import flash.text.TextField;
++   import flash.text.TextFormat;
++   import flash.text.TextFormatAlign;
+    import flash.utils.getDefinitionByName;
++   import flash.utils.getTimer;
+    import flash.utils.setTimeout;
+    import red.core.CoreMenu;
+    import red.core.constants.KeyCode;
+@@ -37,8 +42,10 @@ package red.game.witcher3.menus.character_menu
+    import scaleform.clik.events.InputEvent;
+    import scaleform.clik.events.ListEvent;
+    import scaleform.clik.interfaces.IListItemRenderer;
++   import scaleform.clik.managers.InputDelegate;
+    import scaleform.clik.ui.InputDetails;
+    import scaleform.gfx.Extensions;
++   import scaleform.gfx.MouseEventEx;
+    
+    [SWF(width="1920", height="1080", backgroundColor="#000000", frameRate="40")]
+    public class MenuCharacterDupe extends CoreMenu
+@@ -97,7 +104,57 @@ package red.game.witcher3.menus.character_menu
+       private var _btn_right_tab:int = -1;
+       
+       private var _isMutationInited:Boolean = false;
+-      
++
++      // ---- Skill Tree Loadouts: preset bar ----
++
++      // buttons 0..STL_COUNT-1 are presets, then STL_RESET and STL_UNDO
++      private const STL_COUNT:int = 5;
++
++      private const STL_RESET:int = 5;
++
++      private const STL_UNDO:int = 6;
++
++      private const STL_HOLD_MS:int = 1000;
++
++      private const STL_PRESET_W:Number = 120;
++
++      private const STL_ACTION_W:Number = 132;
++
++      private const STL_BTN_H:Number = 44;
++
++      private const STL_BTN_GAP:Number = 8;
++
++      private const STL_GROUP_GAP:Number = 20;
++
++      private const STL_FONT_SIZE:int = 20;
++
++      private const STL_FONT_MIN:int = 12;
++
++      private var _stlBar:Sprite;
++
++      private var _stlButtons:Array = [];
++
++      private var _stlLabels:Array = [];
++
++      private var _stlData:Array = [];
++
++      private var _stlActions:Array = [];
++
++      private var _stlHover:int = -1;
++
++      private var _stlHoldIdx:int = -1;
++
++      private var _stlHoldStart:int = 0;
++
++      private var _stlHoldSaved:Boolean = false;
++
++      private const STL_NAME_MAX:int = 20;
++
++      // preset being renamed (-1 = none) and the text typed so far
++      private var _stlRenameIdx:int = -1;
++
++      private var _stlRenameText:String = "";
++
+       public function MenuCharacterDupe()
+       {
+          super();
+@@ -158,6 +215,10 @@ package red.game.witcher3.menus.character_menu
+          dispatchEvent(new GameEvent(GameEvent.REGISTER,"character.paperdoll.changed",[this.onPaperdollChanged]));
+          dispatchEvent(new GameEvent(GameEvent.REGISTER,"character.mutations.list",[this.setMutationDataList]));
+          dispatchEvent(new GameEvent(GameEvent.REGISTER,"character.mutation",[this.setSingleMutationData]));
++         // Skill Tree Loadouts: preset bar, filled by the script on OnStlUiReady (sent after OnConfigUI)
++         this.stlCreateBar();
++         dispatchEvent(new GameEvent(GameEvent.REGISTER,"character.stl.presets",[this.stlSetPresets]));
++         dispatchEvent(new GameEvent(GameEvent.REGISTER,"character.stl.actions",[this.stlSetActions]));
+          if(!Extensions.isScaleform)
+          {
+             this.initDebugData();
+@@ -182,6 +243,8 @@ package red.game.witcher3.menus.character_menu
+          _contextMgr.saveScaleValue = true;
+          currentModuleIdx = 1;
+          dispatchEvent(new GameEvent(GameEvent.CALL,"OnConfigUI"));
++         // the script side can only send data once its OnConfigUI set up m_flashValueStorage
++         dispatchEvent(new GameEvent(GameEvent.CALL,"OnStlUiReady",[]));
+          if(this._btn_switch_sections == -1 && InputManager.getInstance().gamepadType != EInputDeviceType.IDT_Switch2_Mouser)
+          {
+             this._btn_switch_sections = InputFeedbackManager.appendButton(this,NavigationCode.GAMEPAD_R3,-1,"panel_button_common_jump_sections");
+@@ -581,6 +644,7 @@ package red.game.witcher3.menus.character_menu
+             this.mcPointIcon.visible = false;
+             this.mcPointsBorder.visible = false;
+             this.mcRunewordIcon.visible = false;
++            this._stlBar.visible = false;
+             this.btnMutationMode.visible = false;
+             this.mcMutationPanel.visible = true;
+             this.mcMutationPanel.alpha = 0;
+@@ -613,6 +677,7 @@ package red.game.witcher3.menus.character_menu
+          this.mcPointIcon.visible = true;
+          this.mcRunewordIcon.alpha = 1;
+          this.txfAvailablePoints.alpha = 1;
++         this._stlBar.visible = true;
+       }
+       
+       protected function showFullStats() : void
+@@ -920,7 +985,357 @@ package red.game.witcher3.menus.character_menu
+          this.txfAvailablePoints.text = CommonUtils.toUpperCaseSafe(this.txfAvailablePoints.text);
+          this.txfAvailablePoints.x = this.txfPointsValue.x + this.txfPointsValue.width - this.txfPointsValue.textWidth - this.POINTS_AVAILABLE_GAP - this.txfAvailablePoints.width;
+       }
++
++      // ---- Skill Tree Loadouts: preset bar ----
++      // One button per preset under the equipped skills: click = OnStlPresetLoad(idx),
++      // hold STL_HOLD_MS = OnStlPresetSave(idx); then Reset (OnStlReset) and Undo (OnStlUndo).
++      // The script answers with "character.stl.presets" and "character.stl.actions".
++
++      private function stlButtonWidth(idx:int) : Number
++      {
++         return idx < this.STL_COUNT ? this.STL_PRESET_W : this.STL_ACTION_W;
++      }
++
++      private function stlCreateBar() : void
++      {
++         var i:int = 0;
++         var posX:Number = 0;
++         var btn:Sprite = null;
++         var label:TextField = null;
++         var fmt:TextFormat = this.txfAvailablePoints.getTextFormat();
++         fmt.size = this.STL_FONT_SIZE;
++         fmt.align = TextFormatAlign.CENTER;
++         this._stlBar = new Sprite();
++         for(i = 0; i <= this.STL_UNDO; i++)
++         {
++            if(i == this.STL_RESET)
++            {
++               posX += this.STL_GROUP_GAP - this.STL_BTN_GAP;
++            }
++            btn = new Sprite();
++            btn.name = "stlButton" + i;
++            btn.x = posX;
++            posX += this.stlButtonWidth(i) + this.STL_BTN_GAP;
++            btn.buttonMode = true;
++            btn.mouseChildren = false;
++            label = new TextField();
++            label.embedFonts = this.txfAvailablePoints.embedFonts;
++            label.defaultTextFormat = fmt;
++            label.selectable = false;
++            label.mouseEnabled = false;
++            label.x = 4;
++            label.width = this.stlButtonWidth(i) - 8;
++            label.height = 30;
++            label.y = (this.STL_BTN_H - label.height) / 2;
++            btn.addChild(label);
++            btn.addEventListener(MouseEvent.MOUSE_DOWN,this.stlOnMouseDown,false,0,true);
++            btn.addEventListener(MouseEvent.ROLL_OVER,this.stlOnRollOver,false,0,true);
++            btn.addEventListener(MouseEvent.ROLL_OUT,this.stlOnRollOut,false,0,true);
++            this._stlBar.addChild(btn);
++            this._stlButtons.push(btn);
++            this._stlLabels.push(label);
++         }
++         addChild(this._stlBar);
++         this.stlLayout();
++         this.stlRedrawAll();
++      }
++
++      // centred under the equipped skill slots, on the "available points" line
++      private function stlLayout() : void
++      {
++         var slots:Rectangle = this.moduleSkillSlot.getBounds(this);
++         var last:Sprite = this._stlButtons[this.STL_UNDO] as Sprite;
++         var total:Number = last.x + this.STL_ACTION_W;
++         this._stlBar.x = Math.round(slots.x + (slots.width - total) / 2);
++         this._stlBar.y = Math.round(this.txfAvailablePoints.y + (this.txfAvailablePoints.height - this.STL_BTN_H) / 2);
++      }
++
++      public function stlSetPresets(value:Array) : void
++      {
++         this._stlData = value ? value : [];
++         this.stlRedrawAll();
++      }
++
++      public function stlSetActions(value:Array) : void
++      {
++         this._stlActions = value ? value : [];
++         this.stlRedrawAll();
++      }
++
++      private function stlRedrawAll() : void
++      {
++         var i:int = 0;
++         for(i = 0; i < this._stlButtons.length; i++)
++         {
++            this.stlRedraw(i);
++         }
++      }
++
++      private function stlRedraw(idx:int) : void
++      {
++         var btn:Sprite = this._stlButtons[idx] as Sprite;
++         var label:TextField = this._stlLabels[idx] as TextField;
++         var isPreset:Boolean = idx < this.STL_COUNT;
++         var actionIdx:int = idx - this.STL_RESET;
++         var data:Object = null;
++         var lit:Boolean = false;
++         var active:Boolean = false;
++         var hover:Boolean = this._stlHover == idx;
++         var progress:Number = 0;
++         var btnW:Number = this.stlButtonWidth(idx);
++         var border:uint = 0;
++         if(isPreset)
++         {
++            data = idx < this._stlData.length ? this._stlData[idx] : null;
++            lit = Boolean(data) && Boolean(data.used);
++            active = Boolean(data) && Boolean(data.active);
++         }
++         else
++         {
++            data = actionIdx < this._stlActions.length ? this._stlActions[actionIdx] : null;
++            lit = Boolean(data) && Boolean(data.enabled);
++         }
++         border = active ? 0xD9B45A : (hover ? 0xBFA36A : 0x6B5F48);
++         if(idx == this._stlRenameIdx)
++         {
++            border = 0xFFFFFF;
++         }
++         if(isPreset && this._stlHoldIdx == idx && !this._stlHoldSaved)
++         {
++            progress = Math.min(1,(getTimer() - this._stlHoldStart) / this.STL_HOLD_MS);
++         }
++         btn.graphics.clear();
++         btn.graphics.lineStyle(active ? 2 : 1,border,1);
++         btn.graphics.beginFill(hover ? 0x2A241A : 0x000000,hover ? 0.8 : 0.55);
++         btn.graphics.drawRect(0,0,btnW,this.STL_BTN_H);
++         btn.graphics.endFill();
++         if(progress > 0)
++         {
++            btn.graphics.lineStyle();
++            btn.graphics.beginFill(0xD9B45A,0.45);
++            btn.graphics.drawRect(1,1,(btnW - 2) * progress,this.STL_BTN_H - 2);
++            btn.graphics.endFill();
++         }
++         label.text = data ? String(data.name) : "";
++         label.textColor = lit ? 0xFFFFFF : 0x8C8C8C;
++         if(idx == this._stlRenameIdx)
++         {
++            label.text = this._stlRenameText + "_";
++            label.textColor = 0xFFFFFF;
++         }
++         this.stlFitLabel(label);
++      }
++
++      // long translations or names: shrink the font until the text fits the button
++      private function stlFitLabel(label:TextField) : void
++      {
++         var fmt:TextFormat = label.getTextFormat();
++         var size:int = this.STL_FONT_SIZE;
++         fmt.size = size;
++         label.setTextFormat(fmt);
++         while(label.textWidth > label.width - 6 && size > this.STL_FONT_MIN)
++         {
++            size--;
++            fmt.size = size;
++            label.setTextFormat(fmt);
++         }
++      }
++
++      private function stlIndexOf(target:Object) : int
++      {
++         return this._stlButtons.indexOf(target);
++      }
++
++      private function stlOnRollOver(event:MouseEvent) : void
++      {
++         this._stlHover = this.stlIndexOf(event.currentTarget);
++         this.stlRedrawAll();
++      }
++
++      private function stlOnRollOut(event:MouseEvent) : void
++      {
++         this._stlHover = -1;
++         this.stlRedrawAll();
++      }
++
++      private function stlOnMouseDown(event:MouseEvent) : void
++      {
++         var idx:int = this.stlIndexOf(event.currentTarget);
++         var eventEx:MouseEventEx = event as MouseEventEx;
++         if(this._stlRenameIdx >= 0)
++         {
++            // a click on another button ends the rename (keeps the name); on the same one, nothing
++            if(idx != this._stlRenameIdx)
++            {
++               this.stlEndRename(true);
++            }
++            return;
++         }
++         if(Boolean(eventEx) && eventEx.buttonIdx == MouseEventEx.RIGHT_BUTTON)
++         {
++            if(idx < this.STL_COUNT)
++            {
++               this.stlStartRename(idx);
++            }
++            return;
++         }
++         this._stlHoldIdx = idx;
++         this._stlHoldStart = getTimer();
++         this._stlHoldSaved = false;
++         stage.addEventListener(MouseEvent.MOUSE_UP,this.stlOnMouseUp,false,0,true);
++         addEventListener(Event.ENTER_FRAME,this.stlOnHoldFrame,false,0,true);
++      }
++
++      private function stlOnHoldFrame(event:Event) : void
++      {
++         if(this._stlHoldIdx < 0)
++         {
++            return;
++         }
++         if(this._stlHoldIdx < this.STL_COUNT && !this._stlHoldSaved && getTimer() - this._stlHoldStart >= this.STL_HOLD_MS)
++         {
++            this._stlHoldSaved = true;
++            dispatchEvent(new GameEvent(GameEvent.CALL,"OnStlPresetSave",[this._stlHoldIdx]));
++         }
++         this.stlRedraw(this._stlHoldIdx);
++      }
++
++      // released over the same button before the hold time: click; after a save, nothing more
++      private function stlOnMouseUp(event:MouseEvent) : void
++      {
++         var idx:int = this._stlHoldIdx;
++         stage.removeEventListener(MouseEvent.MOUSE_UP,this.stlOnMouseUp);
++         removeEventListener(Event.ENTER_FRAME,this.stlOnHoldFrame);
++         this._stlHoldIdx = -1;
++         if(idx >= 0 && !this._stlHoldSaved && this._stlHover == idx)
++         {
++            if(idx == this.STL_RESET)
++            {
++               dispatchEvent(new GameEvent(GameEvent.CALL,"OnStlReset",[]));
++            }
++            else if(idx == this.STL_UNDO)
++            {
++               dispatchEvent(new GameEvent(GameEvent.CALL,"OnStlUndo",[]));
++            }
++            else
++            {
++               dispatchEvent(new GameEvent(GameEvent.CALL,"OnStlPresetLoad",[idx]));
++            }
++         }
++         if(idx >= 0)
++         {
++            this.stlRedraw(idx);
++         }
++      }
+       
++      // Right click on a preset: type its name in the button. The game only passes key codes to
++      // the movie, so the text is built here from them (letters, digits, space, '-').
++      // Enter or a click elsewhere keeps it (OnStlRename), Escape cancels. The script blocks the
++      // menu hotkeys and navigation while OnStlRenaming(true) is on.
++      private function stlStartRename(idx:int) : void
++      {
++         var data:Object = idx < this._stlData.length ? this._stlData[idx] : null;
++         this._stlRenameIdx = idx;
++         this._stlRenameText = Boolean(data) && Boolean(data.used) ? String(data.name).substr(0,this.STL_NAME_MAX) : "";
++         InputDelegate.getInstance().addEventListener(InputEvent.INPUT,this.stlOnRenameInput,false,5000,true);
++         stage.addEventListener(MouseEvent.MOUSE_DOWN,this.stlOnRenameStageDown,false,0,true);
++         dispatchEvent(new GameEvent(GameEvent.CALL,"OnStlRenaming",[true]));
++         this.stlRedraw(idx);
++      }
++
++      private function stlEndRename(keep:Boolean) : void
++      {
++         var idx:int = this._stlRenameIdx;
++         if(idx < 0)
++         {
++            return;
++         }
++         this._stlRenameIdx = -1;
++         InputDelegate.getInstance().removeEventListener(InputEvent.INPUT,this.stlOnRenameInput);
++         stage.removeEventListener(MouseEvent.MOUSE_DOWN,this.stlOnRenameStageDown);
++         if(keep)
++         {
++            dispatchEvent(new GameEvent(GameEvent.CALL,"OnStlRename",[idx,this._stlRenameText]));
++         }
++         dispatchEvent(new GameEvent(GameEvent.CALL,"OnStlRenaming",[false]));
++         this.stlRedraw(idx);
++      }
++
++      private function stlOnRenameStageDown(event:MouseEvent) : void
++      {
++         var btn:Sprite = this._stlButtons[this._stlRenameIdx] as Sprite;
++         if(Boolean(btn) && btn.contains(event.target as DisplayObject))
++         {
++            return;
++         }
++         this.stlEndRename(true);
++      }
++
++      // swallows every input while typing so the menu does not react to it
++      private function stlOnRenameInput(event:InputEvent) : void
++      {
++         var details:InputDetails = event.details;
++         var code:int = int(details.code);
++         var ch:String = null;
++         event.handled = true;
++         event.stopImmediatePropagation();
++         if(details.value != InputValue.KEY_DOWN && details.value != InputValue.KEY_HOLD)
++         {
++            return;
++         }
++         if(details.fromJoystick)
++         {
++            if(details.navEquivalent == NavigationCode.GAMEPAD_A)
++            {
++               this.stlEndRename(true);
++            }
++            else if(details.navEquivalent == NavigationCode.GAMEPAD_B)
++            {
++               this.stlEndRename(false);
++            }
++            return;
++         }
++         if(code == KeyCode.ENTER)
++         {
++            this.stlEndRename(true);
++            return;
++         }
++         if(code == KeyCode.ESCAPE)
++         {
++            this.stlEndRename(false);
++            return;
++         }
++         if(code == KeyCode.BACKSPACE)
++         {
++            this._stlRenameText = this._stlRenameText.substr(0,Math.max(0,this._stlRenameText.length - 1));
++         }
++         else if(code >= 65 && code <= 90)
++         {
++            ch = String.fromCharCode(details.shiftKey ? code : code + 32);
++         }
++         else if(code >= 48 && code <= 57)
++         {
++            ch = String.fromCharCode(code);
++         }
++         else if(code >= 96 && code <= 105)
++         {
++            ch = String.fromCharCode(code - 48);
++         }
++         else if(code == KeyCode.SPACE)
++         {
++            ch = " ";
++         }
++         else if(code == 189 || code == 109)
++         {
++            ch = "-";
++         }
++         if(ch != null && this._stlRenameText.length < this.STL_NAME_MAX)
++         {
++            this._stlRenameText += ch;
++         }
++         this.stlRedraw(this._stlRenameIdx);
++      }
++
+       protected function callNotifyNotEnoughtPoints() : void
+       {
+          dispatchEvent(new GameEvent(GameEvent.CALL,"OnNotEnoughtPoints"));

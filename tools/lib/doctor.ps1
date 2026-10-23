@@ -101,6 +101,11 @@ function Invoke-StlDoctor($Cfg) {
         $fails++
     }
 
+    # git applies and regenerates the patches of src/ui
+    $git = Get-Command git -ErrorAction SilentlyContinue
+    if ($git) { Write-StlCheck OK 'git (ui patches)' "$($git.Source) - $(Get-StlToolVersion $git.Source @('--version'))" }
+    else { Write-StlCheck FAIL 'git (ui patches)' 'git not on PATH: winget install Git.Git'; $fails++ }
+
     # sources
     foreach ($lang in $Cfg.Strings.Languages) {
         $csv = Join-Path $Cfg.Paths.Src "strings\$lang.csv"

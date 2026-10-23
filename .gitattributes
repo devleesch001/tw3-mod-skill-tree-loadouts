@@ -1,0 +1,2 @@
+# patches over the game's classes must keep their exact bytes (LF) to apply
+*.patch -text

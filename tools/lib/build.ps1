@@ -101,23 +101,146 @@ function Build-StlStrings($Cfg, $Tc) {
     Write-Host "strings: $($Cfg.Strings.Languages -join ', ')"
 }
 
+# ---- UI: the game's skills screen with our ActionScript compiled in ----
+#
+# src/ui holds two kinds of files, by AS3 package path (red\game\...\Class):
+#   <Class>.as.patch  our changes to a class of the game (the game's code is never versioned)
+#   <Class>.as        a class entirely written for the mod, compiled as-is
+# A patched class is edited as a full file in work/ui/<Class>.as (not versioned): each build
+# rewrites the .patch from it, and recreates it from the game + .patch when it is missing.
+
+# original .redswf from the game (extracted once into work/cache)
+function Get-StlOriginalSwf($Cfg, $Tc) {
+    $original = Join-Path $Cfg.Paths.Cache "$($Cfg.Ui.Bundle -replace '\.bundle$', '')\$($Cfg.Ui.Swf)"
+    if (-not (Test-Path $original)) {
+        Assert-StlTool 'REDkit wcc_lite' $Tc.Wcc
+        $bundles = Join-Path $Cfg.Paths.Stage 'bundles\'
+        $extracted = Join-Path $Cfg.Paths.Stage 'unbundled\'
+        Remove-Item $bundles, $extracted -Recurse -Force -ErrorAction SilentlyContinue
+        New-Item -ItemType Directory -Force $bundles, $extracted | Out-Null
+        Copy-Item (Join-Path $Tc.GameDir "content\content0\bundles\$($Cfg.Ui.Bundle)") $bundles
+        Invoke-StlWcc $Tc @('unbundle', "-dir=$bundles", "-outdir=$extracted")
+        New-Item -ItemType Directory -Force (Split-Path $original) | Out-Null
+        Copy-Item (Join-Path $extracted $Cfg.Ui.Swf) $original
+        Write-Host "ui: extracted $($Cfg.Ui.Swf)"
+    }
+    $original
+}
+
+# original GFx movie of that .redswf (work/cache/ui-original/movie.gfx)
+function Get-StlOriginalMovie($Cfg, $Tc, [string]$OriginalSwf) {
+    $gfx = Join-Path $Cfg.Paths.Cache 'ui-original\movie.gfx'
+    if (-not (Test-Path $gfx)) {
+        Assert-StlTool 'Python' $Tc.Python
+        New-Item -ItemType Directory -Force (Split-Path $gfx) | Out-Null
+        Invoke-StlCr2w $Tc @('extract', $OriginalSwf, $gfx)
+    }
+    $gfx
+}
+
+function Read-StlText([string]$Path) {
+    [IO.File]::ReadAllText($Path, (New-Object Text.UTF8Encoding $false)) -replace "`r`n", "`n"
+}
+
+function Write-StlText([string]$Path, [string]$Text) {
+    New-Item -ItemType Directory -Force (Split-Path $Path) | Out-Null
+    [IO.File]::WriteAllText($Path, $Text, (New-Object Text.UTF8Encoding $false))
+}
+
+# a class of the game as decompiled by FFDec, LF line endings (work/cache/ui-original/<Class>.as)
+function Get-StlOriginalClass($Cfg, $Tc, [string]$Movie, [string]$Rel) {
+    $cached = Join-Path $Cfg.Paths.Cache "ui-original\$Rel"
+    if (-not (Test-Path $cached)) {
+        Assert-StlTool 'FFDec' $Tc.FFDec
+        $class = $Rel -replace '\.as$', '' -replace '\\', '.'
+        $tmp = Join-Path $Cfg.Paths.Stage 'export\'
+        Remove-Item $tmp -Recurse -Force -ErrorAction SilentlyContinue
+        $log = & $Tc.FFDec -selectclass $class -export script $tmp $Movie 2>&1 | ForEach-Object { "$_" }
+        $exported = Join-Path $tmp "scripts\$Rel"
+        if (-not (Test-Path $exported)) { $log | Write-Host; throw "ui: class $class not found in the game's movie" }
+        Write-StlText $cached (Read-StlText $exported)
+    }
+    $cached
+}
+
+# git does the diff and the patch, outside any repository (under %TEMP%)
+function New-StlPatch($Cfg, [string]$Rel, [string]$Original, [string]$Edited) {
+    $tmp = Join-Path $Cfg.Paths.Stage 'diff'
+    Remove-Item $tmp -Recurse -Force -ErrorAction SilentlyContinue
+    $relUnix = $Rel -replace '\\', '/'
+    Write-StlText (Join-Path $tmp "a\$Rel") (Read-StlText $Original)
+    Write-StlText (Join-Path $tmp "b\$Rel") (Read-StlText $Edited)
+    Push-Location $tmp
+    try {
+        $diff = & git -c core.autocrlf=false diff --no-index --no-prefix --text --no-color -- "a/$relUnix" "b/$relUnix" 2>&1 | ForEach-Object { "$_" }
+        if ($LASTEXITCODE -gt 1) { $diff | Write-Host; throw "ui: git diff failed for $Rel" }
+    } finally { Pop-Location }
+    if (-not $diff) { return '' }
+    ($diff -join "`n") + "`n"
+}
+
+function Invoke-StlApplyPatch($Cfg, [string]$Rel, [string]$Original, [string]$Patch, [string]$Target) {
+    $tmp = Join-Path $Cfg.Paths.Stage 'apply'
+    Remove-Item $tmp -Recurse -Force -ErrorAction SilentlyContinue
+    Write-StlText (Join-Path $tmp $Rel) (Read-StlText $Original)
+    Push-Location $tmp
+    try {
+        # the patch names the file a/<Rel> and b/<Rel>: -p1 drops that first component
+        $log = & git -c core.autocrlf=false apply --whitespace=nowarn -p1 $Patch 2>&1 | ForEach-Object { "$_" }
+        if ($LASTEXITCODE -ne 0) {
+            $log | Write-Host
+            throw "ui: $Rel.patch does not apply to the game's current class (game update?)"
+        }
+    } finally { Pop-Location }
+    Write-StlText $Target (Read-StlText (Join-Path $tmp $Rel))
+}
+
+# editable full files in work/ui <-> versioned patches in src/ui; returns the files to compile
+function Sync-StlUiSources($Cfg, $Tc, [string]$Movie) {
+    $uiDir = Join-Path $Cfg.Paths.Src 'ui'
+    $editDir = Join-Path $Cfg.Paths.Work 'ui'
+    $files = @()
+    foreach ($p in Get-ChildItem $uiDir -Recurse -Filter *.as.patch) {
+        $rel = $p.FullName.Substring($uiDir.Length + 1) -replace '\.patch$', ''
+        $original = Get-StlOriginalClass $Cfg $Tc $Movie $rel
+        $edited = Join-Path $editDir $rel
+        if (Test-Path $edited) {
+            $patch = New-StlPatch $Cfg $rel $original $edited
+            if ($patch -ne (Read-StlText $p.FullName)) {
+                Write-StlText $p.FullName $patch
+                Write-Host "ui: src\ui\$rel.patch updated from work\ui\$rel"
+            }
+        } else {
+            Invoke-StlApplyPatch $Cfg $rel $original $p.FullName $edited
+            Write-Host "ui: work\ui\$rel created from the game + patch"
+        }
+        $files += [pscustomobject]@{ Rel = $rel; Path = $edited }
+    }
+    foreach ($as in Get-ChildItem $uiDir -Recurse -Filter *.as) {
+        $files += [pscustomobject]@{ Rel = $as.FullName.Substring($uiDir.Length + 1); Path = $as.FullName }
+    }
+    $files
+}
+
 # fingerprint of everything the UI bundle is built from
-function Get-StlUiStamp($Cfg, [IO.FileInfo[]]$Classes) {
+function Get-StlUiStamp($Cfg, $Files) {
     $parts = @("$($Cfg.Ui.Bundle)|$($Cfg.Ui.Swf)")
-    foreach ($f in $Classes | Sort-Object FullName) { $parts += "$($f.FullName)=$((Get-FileHash $f.FullName).Hash)" }
+    foreach ($f in $Files | Sort-Object Rel) { $parts += "$($f.Rel)=$((Get-FileHash $f.Path).Hash)" }
     $parts += (Get-FileHash (Join-Path $PSScriptRoot 'cr2w_swf.py')).Hash
     $sha = [Security.Cryptography.SHA256]::Create()
     [BitConverter]::ToString($sha.ComputeHash([Text.Encoding]::UTF8.GetBytes($parts -join "`n"))) -replace '-', ''
 }
 
-# the game's skills screen with the classes of src/ui compiled in -> blob0.bundle + metadata.store
+# -> blob0.bundle + metadata.store
 function Build-StlUi($Cfg, $Tc, [switch]$Force) {
-    $uiDir = Join-Path $Cfg.Paths.Src 'ui'
-    $classes = @(Get-ChildItem $uiDir -Recurse -Filter *.as)
     $out = Get-StlContentDir $Cfg
     $bundleOut = Join-Path $out 'blob0.bundle'
     $stampFile = Join-Path $Cfg.Paths.Build 'ui.stamp'
-    $stamp = Get-StlUiStamp $Cfg $classes
+
+    $originalSwf = Get-StlOriginalSwf $Cfg $Tc
+    $movie = Get-StlOriginalMovie $Cfg $Tc $originalSwf
+    $files = @(Sync-StlUiSources $Cfg $Tc $movie)
+    $stamp = Get-StlUiStamp $Cfg $files
     if (-not $Force -and (Test-Path $bundleOut) -and (Test-Path $stampFile) -and (Get-Content $stampFile -Raw).Trim() -eq $stamp) {
         Write-Host 'ui: up to date'
         return
@@ -129,40 +252,26 @@ function Build-StlUi($Cfg, $Tc, [switch]$Force) {
     Assert-StlTool 'FFDec' $Tc.FFDec
     Assert-StlTool 'Python' $Tc.Python
 
-    # 1. original .redswf, extracted once from the game into work/cache
-    $original = Join-Path $Cfg.Paths.Cache "$($Cfg.Ui.Bundle -replace '\.bundle$', '')\$($Cfg.Ui.Swf)"
-    if (-not (Test-Path $original)) {
-        $bundles = Join-Path $Cfg.Paths.Stage 'bundles\'
-        $extracted = Join-Path $Cfg.Paths.Stage 'unbundled\'
-        Remove-Item $bundles, $extracted -Recurse -Force -ErrorAction SilentlyContinue
-        New-Item -ItemType Directory -Force $bundles, $extracted | Out-Null
-        Copy-Item (Join-Path $Tc.GameDir "content\content0\bundles\$($Cfg.Ui.Bundle)") $bundles
-        Invoke-StlWcc $Tc @('unbundle', "-dir=$bundles", "-outdir=$extracted")
-        New-Item -ItemType Directory -Force (Split-Path $original) | Out-Null
-        Copy-Item (Join-Path $extracted $Cfg.Ui.Swf) $original
-        Write-Host "ui: extracted $($Cfg.Ui.Swf)"
-    }
-
-    # 2. its GFx movie, with each class of src/ui recompiled by FFDec
+    # the original movie with each class recompiled by FFDec
     New-Item -ItemType Directory -Force $Cfg.Paths.Build | Out-Null
     $gfx = Join-Path $Cfg.Paths.Build 'movie.gfx'
-    Invoke-StlCr2w $Tc @('extract', $original, $gfx)
-    foreach ($as in $classes) {
-        $class = $as.FullName.Substring($uiDir.Length + 1) -replace '\.as$', '' -replace '\\', '.'
+    Copy-Item $movie $gfx -Force
+    foreach ($f in $files) {
+        $class = $f.Rel -replace '\.as$', '' -replace '\\', '.'
         $next = Join-Path $Cfg.Paths.Build 'movie.next.gfx'
         Remove-Item $next -ErrorAction SilentlyContinue
-        $log = & $Tc.FFDec -replace $gfx $next $class $as.FullName 2>&1 | ForEach-Object { "$_" }
+        $log = & $Tc.FFDec -replace $gfx $next $class $f.Path 2>&1 | ForEach-Object { "$_" }
         if ($LASTEXITCODE -ne 0 -or -not (Test-Path $next)) { $log | Write-Host; throw "ui: FFDec could not compile $class" }
         Move-Item $next $gfx -Force
         Write-Host "ui: compiled $class"
     }
 
-    # 3. movie back into the .redswf (sizes and CRCs checked by the patcher), packed with wcc_lite
+    # movie back into the .redswf (sizes and CRCs checked by the patcher), packed with wcc_lite
     $pack = Join-Path $Cfg.Paths.Stage 'pack\'
     $packed = Join-Path $Cfg.Paths.Stage 'packed\'
     Remove-Item $pack, $packed -Recurse -Force -ErrorAction SilentlyContinue
     New-Item -ItemType Directory -Force (Join-Path $pack (Split-Path $Cfg.Ui.Swf)), $packed | Out-Null
-    Invoke-StlCr2w $Tc @('patch', $original, $gfx, (Join-Path $pack $Cfg.Ui.Swf))
+    Invoke-StlCr2w $Tc @('patch', $originalSwf, $gfx, (Join-Path $pack $Cfg.Ui.Swf))
     Invoke-StlWcc $Tc @('pack', "-dir=$pack", "-outdir=$packed")
     Invoke-StlWcc $Tc @('metadatastore', "-path=$packed")
     Copy-Item (Join-Path $packed 'blob0.bundle'), (Join-Path $packed 'metadata.store') $out -Force

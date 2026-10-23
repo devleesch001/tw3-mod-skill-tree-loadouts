@@ -21,7 +21,8 @@ Le guide joueur (installation, utilisation, compatibilité) est dans
 ```
 src/scripts/   le mod en WitcherScript (.ws, utilisé tel quel par le jeu)
 src/strings/   les textes, un CSV par langue (en.csv = référence)
-src/ui/        l'écran des compétences modifié (ActionScript 3)
+src/ui/        nos modifications de l'écran des compétences (ActionScript 3), en patch
+work/ui/       les classes complètes à éditer (générées, non versionnées)
 src/release/   README livré aux joueurs
 tools/lib/     modules internes du CLI (+ cr2w_swf.py, voir docs/cr2w_swf.md)
 dist/          le mod construit, généré, même arborescence que le dossier du jeu
@@ -45,6 +46,14 @@ Réglages : [`stl.config.psd1`](stl.config.psd1) (version, langues, outils). Un
 `stl.local.psd1` facultatif, non versionné, surcharge les chemins propres à une machine.
 Le jeu et REDkit sont détectés automatiquement dans les bibliothèques Steam.
 
+### Modifier l'interface
+
+Le code du jeu n'est jamais versionné : `src/ui/<package>/<Classe>.as.patch` ne contient
+que nos changements. Au build, la classe d'origine est extraite du jeu, le patch appliqué,
+et le fichier complet est écrit dans `work/ui/<package>/<Classe>.as`. **C'est ce fichier
+qu'on édite** : chaque `build` régénère le `.patch` à partir de lui. Une classe écrite
+entièrement pour le mod se met directement en `.as` dans `src/ui/`.
+
 ### Outils nécessaires
 
 `doctor` indique ce qui manque et comment l'installer :
@@ -53,6 +62,7 @@ Le jeu et REDkit sont détectés automatiquement dans les bibliothèques Steam.
 - **JPEXS FFDec** + Java — compilation de l'ActionScript
 - **w3strings Remastered** (Nexus 13094) dans `utils\w3stringsr.exe` — encodage des textes
 - **Python 3.8+** — uniquement pendant le build
+- **git** — applique et régénère les patchs de `src/ui/`
 
 ## Licence
 
@@ -68,7 +78,6 @@ avec deux ajouts dans [`LICENSE-EXCEPTION`](LICENSE-EXCEPTION) :
 Les contributions sont acceptées aux mêmes conditions (GPL v3 + ces deux ajouts).
 
 Sont exclus de cette licence, car ils appartiennent à CD PROJEKT RED : le jeu et ses
-fichiers, dont l'écran des compétences d'origine que modifie le mod, et les parties de
-[`src/ui/…/MenuCharacterDupe.as`](src/ui/red/game/witcher3/menus/character_menu/MenuCharacterDupe.as)
-qui proviennent du jeu (seuls les blocs marqués `Skill Tree Loadouts` sont de ce projet).
+fichiers, dont l'écran des compétences d'origine que modifie le mod. Le dépôt n'en contient
+que les quelques lignes de contexte nécessaires aux patchs de `src/ui/`.
 The Witcher® est une marque de CD PROJEKT S.A.
