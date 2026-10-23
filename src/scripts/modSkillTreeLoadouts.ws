@@ -510,6 +510,20 @@ var stlPopup : CStlConfirmPopup;
 	m_flashValueStorage.SetFlashArray( "character.stl.actions", list );
 }
 
+// The game redraws one slot after equipping, unequipping or upgrading its skill. For a mutation
+// slot it sends colorBorder "Red" without the "_Top" / "_Bottom" that UpdateAppliedSkills adds,
+// and the slot's border falls back to its red-green-blue frame: redraw all slots instead.
+@wrapMethod(CR4CharacterDupeMenu) function SendEquippedSkillInfo( curSlot : SSkillSlot )
+{
+	if ( curSlot.id >= BSS_SkillSlot1 && curSlot.id <= BSS_SkillSlot4
+		&& GetWitcherPlayer().GetEquippedMutationType() != EPMT_None )
+	{
+		UpdateAppliedSkills();
+		return;
+	}
+	wrappedMethod( curSlot );
+}
+
 // sent by the modded panel_character_dupe once it registered "character.stl.presets"
 @addMethod(CR4CharacterDupeMenu) event OnStlUiReady()
 {
